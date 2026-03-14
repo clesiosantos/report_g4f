@@ -3,8 +3,15 @@ require_once 'db.php';
 header('Content-Type: application/json');
 
 try {
-    // Busca períodos distintos da tabela de calendário
-    $sql = "SELECT DISTINCT periodo AS PERIODO FROM calendario ORDER BY data_inicio DESC";
+    // Busca os períodos distintos baseados na data de fechamento dos chamados vinculada ao calendário
+    $sql = "
+        SELECT DISTINCT c.periodo AS PERIODO 
+        FROM glpi_tickets t
+        INNER JOIN calendario c ON DATE(t.closedate) = c.data
+        WHERE t.status = 6 
+        AND t.is_deleted = 0
+        ORDER BY c.data DESC
+    ";
     $stmt = $pdo->query($sql);
     $results = $stmt->fetchAll(PDO::FETCH_COLUMN);
     

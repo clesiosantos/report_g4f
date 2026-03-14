@@ -17,6 +17,7 @@ const Dashboard = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<string>("");
   const [user, setUser] = useState<GLPIUser | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingPeriods, setLoadingPeriods] = useState(true);
   
   const navigate = useNavigate();
 
@@ -28,8 +29,8 @@ const Dashboard = () => {
     }
     setUser(JSON.parse(storedUser));
     
-    // Carregar períodos e então os tickets
     const init = async () => {
+      setLoadingPeriods(true);
       try {
         const availablePeriods = await glpiService.getPeriods();
         setPeriods(availablePeriods);
@@ -39,7 +40,9 @@ const Dashboard = () => {
           loadData(defaultPeriod);
         }
       } catch (err) {
-        showError("Erro ao carregar períodos iniciais.");
+        showError("Erro ao carregar períodos.");
+      } finally {
+        setLoadingPeriods(false);
       }
     };
     
@@ -53,7 +56,7 @@ const Dashboard = () => {
       const data = await glpiService.getTickets(period);
       setTickets(data);
     } catch (err) {
-      showError("Erro ao carregar atividades do período.");
+      showError("Erro ao carregar atividades.");
     } finally {
       setLoading(false);
     }
@@ -68,7 +71,6 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
       <header className="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-10 shadow-sm">
         <div className="flex items-center gap-3">
           <img 
@@ -91,7 +93,6 @@ const Dashboard = () => {
       </header>
 
       <main className="p-6 max-w-7xl mx-auto space-y-6">
-        {/* Filtros */}
         <Card className="border-none shadow-md bg-white">
           <CardHeader className="pb-3 border-b mb-4">
             <CardTitle className="text-lg flex items-center gap-2 text-slate-700">
@@ -107,9 +108,9 @@ const Dashboard = () => {
                 <Select value={selectedPeriod} onValueChange={(val) => {
                   setSelectedPeriod(val);
                   loadData(val);
-                }}>
+                }} disabled={loadingPeriods}>
                   <SelectTrigger className="w-full md:w-64 bg-slate-50 border-slate-200">
-                    <SelectValue placeholder="Selecione o período" />
+                    <SelectValue placeholder={loadingPeriods ? "Carregando..." : "Selecione o período"} />
                   </SelectTrigger>
                   <SelectContent>
                     {periods.map(p => (
@@ -122,7 +123,7 @@ const Dashboard = () => {
                 <Button 
                   className="flex-1 md:w-48 bg-blue-600 hover:bg-blue-700" 
                   onClick={() => loadData(selectedPeriod)}
-                  disabled={loading}
+                  disabled={loading || loadingPeriods}
                 >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileText className="w-4 h-4 mr-2" />}
                   Atualizar Dados
@@ -135,7 +136,6 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Resumo */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="bg-white border-l-4 border-l-blue-500 shadow-sm">
             <CardContent className="pt-6">
@@ -182,7 +182,6 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Tabela de Resultados */}
         <Card className="border-none shadow-lg overflow-hidden bg-white">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -235,7 +234,7 @@ const Dashboard = () => {
                           </div>
                         </TableCell>
                         <TableCell className="text-sm text-slate-600">
-                          {new Date(ticket.data_solucao).toLocaleDateString('pt-BR')}
+                          {ticket.data_solucao ? new Date(ticket.data_solucao).toLocaleDateString('pt-BR') : '-'}
                         </TableCell>
                         <TableCell className="text-right">
                           <span className="font-mono font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded">

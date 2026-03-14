@@ -10,7 +10,7 @@ if (empty($period)) {
     exit;
 }
 
-// SQL Otimizado filtrando por período (via join com calendário ou formato de data)
+// SQL utilizando as funções e joins fornecidos pelo usuário
 $sql = "
     SELECT 
         t.id,
@@ -19,25 +19,28 @@ $sql = "
         t.date as data_criacao,
         t.solve_date as data_solucao,
         it.completename as servico,
-        CONCAT(u.firstname, ' ', u.realname) as posto_trabalho,
-        'TI Central' as gerencia_origem,
-        'João Líder' as lider,
-        'Maria Preposta' as preposto,
-        ? as periodo_avaliado,
-        CASE WHEN t.status = 5 THEN 'Solucionado' ELSE 'Fechado' END as status,
-        (SELECT SUM(actiontime)/3600 FROM glpi_tickettasks WHERE tickets_id = t.id) as tempo_total
+        -- Usando as funções do banco conforme solicitado
+        fc_users_name(t.users_id_recipient) AS posto_trabalho, 
+        IFNULL(fc_groups_ticket(t.id, 2), fc_manager_users(t.users_id_recipient)) AS gerencia_origem,
+        fc_leader_prepost(t.users_id_recipient, 1) AS lider,
+        fc_leader_prepost(t.users_id_recipient, 2) AS preposto,
+        c.periodo as periodo_avaliado,
+        'Fechado' as status,
+        IFNULL(fc_task_time(t.id)/3600, 0) AS tempo_total
     FROM glpi_tickets t
-    LEFT JOIN glpi_itilcategories it ON t.itilcategories_id = it.id
-    LEFT JOIN glpi_users u ON t.users_id_recipient = u.id
-    INNER JOIN calendario c ON (t.date BETWEEN c.data_inicio AND c.data_fim)
+    LEFT JOIN glpi_itilcategories it ON it.id = t.itilcategories_id
+    LEFT JOIN glpi_users u ON u.id = t.users_id_recipient
+    INNER JOIN calendario c ON DATE(t.closedate) = c.data
     WHERE c.periodo = ?
+    AND t.status = 6
     AND t.is_deleted = 0
+    AND it.completename NOT REGEXP 'Justificativa'
     ORDER BY t.date DESC
 ";
 
 try {
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([$period, $period]);
+    $stmt->execute([$period]);
     $results = $stmt->fetchAll();
     
     echo json_encode($results);
