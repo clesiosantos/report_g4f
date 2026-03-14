@@ -1,5 +1,6 @@
 <?php
 require_once 'db.php';
+require_once 'config.php';
 header('Content-Type: application/json');
 
 $input = json_decode(file_get_contents('php://input'), true);
@@ -21,14 +22,14 @@ try {
     // Verifica se o usuário existe e se a senha bate com o hash do GLPI
     if ($userData && password_verify($pass, $userData['password'])) {
         
-        // Lógica de Perfil (Pode ser expandida consultando a tabela glpi_profiles_users)
+        // Lógica de Perfil simplificada
         $profile = 'Posto de Trabalho';
         if (str_contains(strtolower($user), 'lider')) $profile = 'Lider';
         if (str_contains(strtolower($user), 'preposto')) $profile = 'Preposto';
 
         echo json_encode([
             'id' => $userData['id'],
-            'name' => ($userData['firstname'] ?? '') . ' ' . ($userData['realname'] ?? ''),
+            'name' => trim(($userData['firstname'] ?? '') . ' ' . ($userData['realname'] ?? '')),
             'profile' => $profile,
             'session_token' => bin2hex(random_bytes(32))
         ]);

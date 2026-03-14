@@ -1,9 +1,9 @@
 <?php
 // Configurações do Banco de Dados GLPI
-$host = 'localhost';
-$db   = 'glpi_database'; // Altere para o nome do seu banco
-$user = 'glpi_user';     // Altere para seu usuário
-$pass = 'glpi_password'; // Altere para sua senha
+$host = 'db.petro.local';
+$db   = 'glpi_fisco'; 
+$user = 'glpi_fisco';     
+$pass = 'GLPiDB@2024.'; 
 $charset = 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
@@ -17,7 +17,7 @@ try {
      $pdo = new PDO($dsn, $user, $pass, $options);
 } catch (\PDOException $e) {
      header('Content-Type: application/json', true, 500);
-     echo json_encode(['error' => 'Falha na conexão com o banco']);
+     echo json_encode(['error' => 'Falha na conexão com o banco: ' . $e->getMessage()]);
      exit;
 }
 ?>
