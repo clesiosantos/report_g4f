@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { FileText, Download, LogOut, Filter, User, CalendarDays, Loader2 } from "lucide-react";
+import { FileText, Download, LogOut, Filter, User, CalendarDays, Loader2, CalendarRange } from "lucide-react";
 import { glpiService, TicketReport, GLPIUser } from '@/lib/glpi';
 import { showError } from '@/utils/toast';
 
@@ -66,6 +66,13 @@ const Dashboard = () => {
     localStorage.removeItem('glpi_user');
     navigate('/');
   };
+
+  // Cálculo de Dias Lançados (Dias únicos com solução)
+  const totalDays = new Set(
+    tickets
+      .filter(t => t.data_solucao)
+      .map(t => t.data_solucao.split(' ')[0])
+  ).size;
 
   if (!user) return null;
 
@@ -155,13 +162,13 @@ const Dashboard = () => {
             <CardContent className="pt-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-sm text-slate-500 font-medium">Horas Lançadas</p>
+                  <p className="text-sm text-slate-500 font-medium">Dias Lançados</p>
                   <p className="text-3xl font-bold text-slate-900 mt-1">
-                    {loading ? '...' : tickets.reduce((acc, t) => acc + t.tempo_total, 0).toFixed(1)}h
+                    {loading ? '...' : totalDays} dias
                   </p>
                 </div>
                 <div className="bg-green-50 p-2 rounded-lg">
-                  <CalendarDays className="w-5 h-5 text-green-600" />
+                  <CalendarRange className="w-5 h-5 text-green-600" />
                 </div>
               </div>
             </CardContent>
@@ -171,8 +178,8 @@ const Dashboard = () => {
             <CardContent className="pt-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-sm text-slate-500 font-medium">Status do Período</p>
-                  <p className="text-xl font-bold text-purple-700 mt-1 truncate">{selectedPeriod || 'Não selecionado'}</p>
+                  <p className="text-sm text-slate-500 font-medium">Período Ativo</p>
+                  <p className="text-xl font-bold text-purple-700 mt-1 truncate">{selectedPeriod || 'Nenhum'}</p>
                 </div>
                 <div className="bg-purple-50 p-2 rounded-lg">
                   <Filter className="w-5 h-5 text-purple-600" />

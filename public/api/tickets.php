@@ -10,16 +10,14 @@ if (empty($period)) {
     exit;
 }
 
-// SQL utilizando as funções e joins fornecidos pelo usuário
 $sql = "
     SELECT 
         t.id,
         t.name as titulo,
         t.content as descricao,
         t.date as data_criacao,
-        t.solve_date as data_solucao,
+        IFNULL(t.solvedate, t.closedate) as data_solucao,
         it.completename as servico,
-        -- Usando as funções do banco conforme solicitado
         fc_users_name(t.users_id_recipient) AS posto_trabalho, 
         IFNULL(fc_groups_ticket(t.id, 2), fc_manager_users(t.users_id_recipient)) AS gerencia_origem,
         fc_leader_prepost(t.users_id_recipient, 1) AS lider,
@@ -29,8 +27,7 @@ $sql = "
         IFNULL(fc_task_time(t.id)/3600, 0) AS tempo_total
     FROM glpi_tickets t
     LEFT JOIN glpi_itilcategories it ON it.id = t.itilcategories_id
-    LEFT JOIN glpi_users u ON u.id = t.users_id_recipient
-    INNER JOIN calendario c ON DATE(t.closedate) = c.data
+    INNER JOIN calendario c ON (DATE(t.closedate) = c.data OR DATE(t.solvedate) = c.data)
     WHERE c.periodo = ?
     AND t.status = 6
     AND t.is_deleted = 0
