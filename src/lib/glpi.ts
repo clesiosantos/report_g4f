@@ -27,7 +27,6 @@ export interface GLPIUser {
 
 export const glpiService = {
   async login(user: string, pass: string): Promise<GLPIUser> {
-    // Usando caminho relativo para funcionar dentro do contexto /report
     const response = await fetch('api/login.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -42,12 +41,14 @@ export const glpiService = {
     return response.json();
   },
 
-  async getTickets(filters: { start: string, end: string }): Promise<TicketReport[]> {
-    const params = new URLSearchParams({
-      start: filters.start,
-      end: filters.end
-    });
+  async getPeriods(): Promise<string[]> {
+    const response = await fetch('api/periods.php');
+    if (!response.ok) throw new Error('Falha ao carregar períodos');
+    return response.json();
+  },
 
+  async getTickets(period: string): Promise<TicketReport[]> {
+    const params = new URLSearchParams({ period });
     const response = await fetch(`api/tickets.php?${params.toString()}`);
     
     if (!response.ok) {

@@ -5,16 +5,19 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { FileText, Download, LogOut, Filter, User, Calendar } from "lucide-react";
+import { FileText, Download, LogOut, Filter, User, CalendarDays, Loader2 } from "lucide-react";
 import { glpiService, TicketReport, GLPIUser } from '@/lib/glpi';
+import { showError } from '@/utils/toast';
 
 const Dashboard = () => {
   const [tickets, setTickets] = useState<TicketReport[]>([]);
+  const [periods, setPeriods] = useState<string[]>([]);
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("");
   const [user, setUser] = useState<GLPIUser | null>(null);
-  const [dateStart, setDateStart] = useState('2025-10-26');
-  const [dateEnd, setDateEnd] = useState('2025-11-14');
+  const [loading, setLoading] = useState(false);
+  
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -24,12 +27,36 @@ const Dashboard = () => {
       return;
     }
     setUser(JSON.parse(storedUser));
-    loadData();
+    
+    // Carregar períodos e então os tickets
+    const init = async () => {
+      try {
+        const availablePeriods = await glpiService.getPeriods();
+        setPeriods(availablePeriods);
+        if (availablePeriods.length > 0) {
+          const defaultPeriod = availablePeriods[0];
+          setSelectedPeriod(defaultPeriod);
+          loadData(defaultPeriod);
+        }
+      } catch (err) {
+        showError("Erro ao carregar períodos iniciais.");
+      }
+    };
+    
+    init();
   }, []);
 
-  const loadData = async () => {
-    const data = await glpiService.getTickets({ start: dateStart, end: dateEnd });
-    setTickets(data);
+  const loadData = async (period: string) => {
+    if (!period) return;
+    setLoading(true);
+    try {
+      const data = await glpiService.getTickets(period);
+      setTickets(data);
+    } catch (err) {
+      showError("Erro ao carregar atividades do período.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogout = () => {
@@ -43,117 +70,186 @@ const Dashboard = () => {
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <header className="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-10 shadow-sm">
-        <div className="flex items-center gap-2">
-          <FileText className="text-blue-600 w-6 h-6" />
-          <h1 className="text-xl font-bold text-slate-800">Relatório Diário de Atividade (RDA)</h1>
+        <div className="flex items-center gap-3">
+          <img 
+            src="https://raw.githubusercontent.com/clesiosantos/glpihmg4f/main/LOGOAZUL.png" 
+            alt="Logo RDA" 
+            className="h-8 w-auto"
+          />
+          <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
+          <h1 className="text-xl font-bold text-slate-800 hidden sm:block">Portal RDA</h1>
         </div>
         <div className="flex items-center gap-4">
-          <div className="text-right hidden sm:block">
-            <p className="text-sm font-medium">{user.name}</p>
-            <p className="text-xs text-slate-500">{user.profile}</p>
+          <div className="text-right hidden md:block">
+            <p className="text-sm font-bold text-slate-900 leading-tight">{user.name}</p>
+            <p className="text-xs text-blue-600 font-medium">{user.profile}</p>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleLogout} title="Sair">
-            <LogOut className="w-5 h-5 text-slate-600" />
+          <Button variant="ghost" size="icon" onClick={handleLogout} className="hover:bg-red-50 hover:text-red-600">
+            <LogOut className="w-5 h-5" />
           </Button>
         </div>
       </header>
 
       <main className="p-6 max-w-7xl mx-auto space-y-6">
         {/* Filtros */}
-        <Card className="border-none shadow-md">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Filter className="w-4 h-4" /> Filtros de Relatório
+        <Card className="border-none shadow-md bg-white">
+          <CardHeader className="pb-3 border-b mb-4">
+            <CardTitle className="text-lg flex items-center gap-2 text-slate-700">
+              <Filter className="w-4 h-4 text-blue-600" /> Parâmetros de Consulta
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2"><Calendar className="w-3 h-3" /> Início</Label>
-                <Input type="date" value={dateStart} onChange={(e) => setDateStart(e.target.value)} />
+            <div className="flex flex-col md:flex-row gap-6 items-end">
+              <div className="space-y-2 flex-1 w-full">
+                <Label className="flex items-center gap-2 text-slate-600 font-semibold">
+                  <CalendarDays className="w-4 h-4" /> Período de Atividade
+                </Label>
+                <Select value={selectedPeriod} onValueChange={(val) => {
+                  setSelectedPeriod(val);
+                  loadData(val);
+                }}>
+                  <SelectTrigger className="w-full md:w-64 bg-slate-50 border-slate-200">
+                    <SelectValue placeholder="Selecione o período" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {periods.map(p => (
+                      <SelectItem key={p} value={p}>{p}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2"><Calendar className="w-3 h-3" /> Fim</Label>
-                <Input type="date" value={dateEnd} onChange={(e) => setDateEnd(e.target.value)} />
+              <div className="flex gap-2 w-full md:w-auto">
+                <Button 
+                  className="flex-1 md:w-48 bg-blue-600 hover:bg-blue-700" 
+                  onClick={() => loadData(selectedPeriod)}
+                  disabled={loading}
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileText className="w-4 h-4 mr-2" />}
+                  Atualizar Dados
+                </Button>
+                <Button variant="outline" className="flex gap-2 border-slate-200 hover:bg-slate-50">
+                  <Download className="w-4 h-4" /> Exportar PDF
+                </Button>
               </div>
-              <Button className="bg-blue-600 hover:bg-blue-700" onClick={loadData}>
-                Atualizar Relatório
-              </Button>
             </div>
           </CardContent>
         </Card>
 
+        {/* Resumo */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="bg-white border-l-4 border-l-blue-500 shadow-sm">
+            <CardContent className="pt-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm text-slate-500 font-medium">Total de Chamados</p>
+                  <p className="text-3xl font-bold text-slate-900 mt-1">{loading ? '...' : tickets.length}</p>
+                </div>
+                <div className="bg-blue-50 p-2 rounded-lg">
+                  <FileText className="w-5 h-5 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-white border-l-4 border-l-green-500 shadow-sm">
+            <CardContent className="pt-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm text-slate-500 font-medium">Horas Lançadas</p>
+                  <p className="text-3xl font-bold text-slate-900 mt-1">
+                    {loading ? '...' : tickets.reduce((acc, t) => acc + t.tempo_total, 0).toFixed(1)}h
+                  </p>
+                </div>
+                <div className="bg-green-50 p-2 rounded-lg">
+                  <CalendarDays className="w-5 h-5 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border-l-4 border-l-purple-500 shadow-sm">
+            <CardContent className="pt-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm text-slate-500 font-medium">Status do Período</p>
+                  <p className="text-xl font-bold text-purple-700 mt-1 truncate">{selectedPeriod || 'Não selecionado'}</p>
+                </div>
+                <div className="bg-purple-50 p-2 rounded-lg">
+                  <Filter className="w-5 h-5 text-purple-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Tabela de Resultados */}
-        <Card className="border-none shadow-md overflow-hidden">
-          <CardHeader className="bg-white border-b flex flex-row justify-between items-center">
-            <CardTitle className="text-lg">Atividades no Período</CardTitle>
-            <Button variant="outline" size="sm" className="flex gap-2">
-              <Download className="w-4 h-4" /> Exportar PDF
-            </Button>
-          </CardHeader>
+        <Card className="border-none shadow-lg overflow-hidden bg-white">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader className="bg-slate-100">
+                <TableHeader className="bg-slate-50 border-b">
                   <TableRow>
-                    <TableHead className="w-[100px]">Chamado</TableHead>
-                    <TableHead>Título / Descrição de Abertura</TableHead>
-                    <TableHead>Serviço</TableHead>
-                    <TableHead>Posto de Trabalho</TableHead>
-                    <TableHead>Data Solução</TableHead>
-                    <TableHead className="text-right">Horas</TableHead>
+                    <TableHead className="w-[120px] font-bold text-slate-700">Chamado</TableHead>
+                    <TableHead className="font-bold text-slate-700">Título / Descrição</TableHead>
+                    <TableHead className="font-bold text-slate-700">Serviço</TableHead>
+                    <TableHead className="font-bold text-slate-700">Posto de Trabalho</TableHead>
+                    <TableHead className="font-bold text-slate-700">Solução</TableHead>
+                    <TableHead className="text-right font-bold text-slate-700">Horas</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {tickets.map((ticket) => (
-                    <TableRow key={ticket.id} className="hover:bg-slate-50">
-                      <TableCell className="font-bold text-blue-600">#{ticket.id}</TableCell>
-                      <TableCell>
-                        <div className="font-medium">{ticket.titulo}</div>
-                        <div className="text-xs text-slate-500 line-clamp-2 mt-1 italic">
-                          "{ticket.descricao}"
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-64 text-center">
+                        <div className="flex flex-col items-center gap-2">
+                          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                          <p className="text-slate-500 font-medium">Consultando base do GLPI...</p>
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm">{ticket.servico}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <User className="w-3 h-3 text-slate-400" />
-                          <span className="text-sm">{ticket.posto_trabalho}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm">{new Date(ticket.data_solucao).toLocaleDateString('pt-BR')}</TableCell>
-                      <TableCell className="text-right font-mono">{ticket.tempo_total.toFixed(1)}h</TableCell>
                     </TableRow>
-                  ))}
+                  ) : tickets.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-64 text-center text-slate-500">
+                        Nenhuma atividade encontrada para este período.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    tickets.map((ticket) => (
+                      <TableRow key={ticket.id} className="hover:bg-blue-50/50 transition-colors">
+                        <TableCell className="font-bold text-blue-600">#{ticket.id}</TableCell>
+                        <TableCell className="max-w-md">
+                          <div className="font-semibold text-slate-800">{ticket.titulo}</div>
+                          <div className="text-xs text-slate-500 line-clamp-2 mt-1 italic leading-relaxed">
+                            "{ticket.descricao}"
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-xs font-medium px-2 py-1 bg-slate-100 rounded text-slate-600">
+                            {ticket.servico}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <User className="w-3 h-3 text-slate-400" />
+                            <span className="text-sm font-medium text-slate-700">{ticket.posto_trabalho}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm text-slate-600">
+                          {new Date(ticket.data_solucao).toLocaleDateString('pt-BR')}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="font-mono font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded">
+                            {ticket.tempo_total.toFixed(1)}h
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
           </CardContent>
         </Card>
-
-        {/* Resumo de Perfil */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="bg-blue-50 border-blue-100">
-            <CardContent className="pt-6">
-              <p className="text-sm text-blue-600 font-medium">Total de Chamados</p>
-              <p className="text-3xl font-bold text-blue-900">{tickets.length}</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-green-50 border-green-100">
-            <CardContent className="pt-6">
-              <p className="text-sm text-green-600 font-medium">Horas Lançadas</p>
-              <p className="text-3xl font-bold text-green-900">
-                {tickets.reduce((acc, t) => acc + t.tempo_total, 0).toFixed(1)}h
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="bg-purple-50 border-purple-100">
-            <CardContent className="pt-6">
-              <p className="text-sm text-purple-600 font-medium">Período Avaliado</p>
-              <p className="text-3xl font-bold text-purple-900">{tickets[0]?.periodo_avaliado || '--'}</p>
-            </CardContent>
-          </Card>
-        </div>
       </main>
     </div>
   );
