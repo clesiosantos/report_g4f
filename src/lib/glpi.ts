@@ -1,6 +1,5 @@
 "use client";
 
-// Tipagem para os dados do relatório baseados no seu SQL
 export interface TicketReport {
   id: number;
   titulo: string;
@@ -26,51 +25,39 @@ export interface GLPIUser {
   session_token: string;
 }
 
-// Simulação da API do GLPI
 export const glpiService = {
   async login(user: string, pass: string): Promise<GLPIUser> {
-    // Aqui seria a chamada real: fetch(`${GLPI_URL}/initSession`, { headers: { 'Authorization': `Basic ${btoa(user + ':' + pass)}` } })
-    console.log("Autenticando no GLPI...", { user });
-    
-    // Mock de resposta baseado no usuário para teste
-    if (user.includes('lider')) return { id: 2, name: 'João Líder', profile: 'Lider', session_token: 'tk_lider' };
-    if (user.includes('preposto')) return { id: 3, name: 'Maria Preposta', profile: 'Preposto', session_token: 'tk_preposto' };
-    return { id: 1, name: 'Simone de Moura', profile: 'Posto de Trabalho', session_token: 'tk_posto' };
+    const response = await fetch('/api/login.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user, pass })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Falha na autenticação');
+    }
+
+    return response.json();
   },
 
-  async getTickets(filters: { start: string, end: string, userId?: number }): Promise<TicketReport[]> {
-    // Simulação dos dados retornados pelo seu SQL otimizado
-    return [
-      {
-        id: 12345,
-        titulo: "Ajuste de Estação de Trabalho",
-        descricao: "O usuário informou que o monitor não liga após queda de energia.",
-        data_criacao: "2025-10-26 08:00:00",
-        data_solucao: "2025-10-26 10:30:00",
-        servico: "Suporte Técnico > Hardware",
-        posto_trabalho: "Simone de Moura",
-        gerencia_origem: "TI Central",
-        lider: "João Líder",
-        preposto: "Maria Preposta",
-        periodo_avaliado: "10-2025",
-        status: "Fechado",
-        tempo_total: 2.5
-      },
-      {
-        id: 12346,
-        titulo: "Instalação de Software",
-        descricao: "Solicitação de instalação do pacote Office na máquina nova.",
-        data_criacao: "2025-10-27 09:00:00",
-        data_solucao: "2025-10-27 11:00:00",
-        servico: "Suporte Técnico > Software",
-        posto_trabalho: "Simone de Moura",
-        gerencia_origem: "TI Central",
-        lider: "João Líder",
-        preposto: "Maria Preposta",
-        periodo_avaliado: "10-2025",
-        status: "Fechado",
-        tempo_total: 2.0
-      }
-    ];
+  async getTickets(filters: { start: string, end: string }): Promise<TicketReport[]> {
+    const params = new URLSearchParams({
+      start: filters.start,
+      end: filters.end
+    });
+
+    const response = await fetch(`/api/tickets.php?${params.toString()}`);
+    
+    if (!response.ok) {
+      throw new Error('Falha ao carregar tickets');
+    }
+
+    const data = await response.json();
+    // Garantir que tempo_total seja número
+    return data.map((t: any) => ({
+      ...t,
+      tempo_total: parseFloat(t.tempo_total) || 0
+    }));
   }
 };
