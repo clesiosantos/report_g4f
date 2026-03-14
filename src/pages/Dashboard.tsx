@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { FileText, Download, LogOut, Filter, User, CalendarDays, Loader2, CalendarRange } from "lucide-react";
+import { FileText, Download, LogOut, Filter, User, CalendarDays, Loader2, CalendarRange, ChevronRight } from "lucide-react";
 import { glpiService, TicketReport, GLPIUser } from '@/lib/glpi';
 import { showError } from '@/utils/toast';
 
@@ -65,16 +65,24 @@ const Dashboard = () => {
     }
   };
 
+  // Agrupamento de tickets por data para exibição
+  const groupedData = useMemo(() => {
+    const groups: Record<string, TicketReport[]> = {};
+    tickets.forEach(ticket => {
+      const date = ticket.data_criacao.split(' ')[0];
+      if (!groups[date]) groups[date] = [];
+      groups[date].push(ticket);
+    });
+    return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
+  }, [tickets]);
+
+  // Contagem distinta de dias baseada na data de abertura (date_criacao)
+  const totalDays = groupedData.length;
+
   const handleLogout = () => {
     localStorage.removeItem('glpi_user');
     navigate('/');
   };
-
-  const totalDays = new Set(
-    tickets
-      .filter(t => t.data_solucao)
-      .map(t => t.data_solucao.split(' ')[0])
-  ).size;
 
   if (!user) return null;
 
@@ -102,7 +110,6 @@ const Dashboard = () => {
       </header>
 
       <main className="p-6 max-w-7xl mx-auto space-y-6">
-        {/* Filtros e Cards de resumo mantidos aqui... */}
         <Card className="border-none shadow-md bg-white">
           <CardHeader className="pb-3 border-b mb-4">
             <CardTitle className="text-lg flex items-center gap-2 text-slate-700">
@@ -198,52 +205,60 @@ const Dashboard = () => {
               <Table>
                 <TableHeader className="bg-slate-50 border-b">
                   <TableRow>
-                    <TableHead className="w-[120px] font-bold text-slate-700">Chamado</TableHead>
-                    <TableHead className="font-bold text-slate-700">Título / Descrição</TableHead>
-                    <TableHead className="font-bold text-slate-700">Serviço</TableHead>
+                    <TableHead className="w-[120px] font-bold text-slate-700">Data Lançamento</TableHead>
+                    <TableHead className="font-bold text-slate-700">Atividades Realizadas</TableHead>
+                    <TableHead className="font-bold text-slate-700">Chamados</TableHead>
                     <TableHead className="font-bold text-slate-700">Posto de Trabalho</TableHead>
-                    <TableHead className="font-bold text-slate-700">Data Lançamento</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="h-64 text-center">
+                      <TableCell colSpan={4} className="h-64 text-center">
                         <div className="flex flex-col items-center gap-2">
                           <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
                           <p className="text-slate-500 font-medium">Consultando base do GLPI...</p>
                         </div>
                       </TableCell>
                     </TableRow>
-                  ) : tickets.length === 0 ? (
+                  ) : groupedData.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="h-64 text-center text-slate-500">
+                      <TableCell colSpan={4} className="h-64 text-center text-slate-500">
                         Nenhuma atividade encontrada para este período.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    tickets.map((ticket) => (
-                      <TableRow key={ticket.id} className="hover:bg-blue-50/50 transition-colors">
-                        <TableCell className="font-bold text-blue-600">#{ticket.id}</TableCell>
-                        <TableCell className="max-w-md">
-                          <div className="font-semibold text-slate-800">{ticket.titulo}</div>
-                          <div className="text-xs text-slate-500 line-clamp-2 mt-1 italic leading-relaxed">
-                            {ticket.descricao}
+                    groupedData.map(([date, items]) => (
+                      <TableRow key={date} className="hover:bg-blue-50/30 transition-colors align-top">
+                        <TableCell className="font-bold text-slate-700 py-4">
+                          {new Date(date + 'T12:00:00').toLocaleDateString('pt-BR')}
+                        </TableCell>
+                        <TableCell className="max-w-xl py-4">
+                          <div className="space-y-4">
+                            {items.map((item, idx) => (
+                              <div key={item.id} className={idx > 0 ? "pt-3 border-t border-slate-100" : ""}>
+                                <div className="font-bold text-slate-800 text-sm mb-1">{item.titulo}</div>
+                                <div className="text-xs text-slate-500 leading-relaxed italic">
+                                  {item.descricao}
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <span className="text-xs font-medium px-2 py-1 bg-slate-100 rounded text-slate-600">
-                            {ticket.servico}
-                          </span>
+                        <TableCell className="py-4">
+                          <div className="flex flex-wrap gap-1">
+                            {items.map(item => (
+                              <span key={item.id} className="text-[10px] font-mono font-bold px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">
+                                #{item.id}
+                              </span>
+                            ))}
+                          </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-4">
                           <div className="flex items-center gap-2">
                             <User className="w-3 h-3 text-slate-400" />
-                            <span className="text-sm font-medium text-slate-700">{ticket.posto_trabalho}</span>
+                            <span className="text-sm font-medium text-slate-700">{items[0].posto_trabalho}</span>
                           </div>
-                        </TableCell>
-                        <TableCell className="text-sm text-slate-600">
-                          {ticket.data_criacao ? new Date(ticket.data_criacao).toLocaleDateString('pt-BR') : '-'}
                         </TableCell>
                       </TableRow>
                     ))
