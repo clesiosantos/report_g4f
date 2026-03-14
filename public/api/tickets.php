@@ -3,13 +3,15 @@ require_once 'db.php';
 header('Content-Type: application/json');
 
 $period = $_GET['period'] ?? '';
+$userId = $_GET['user_id'] ?? '';
 
-if (empty($period)) {
+if (empty($period) || empty($userId)) {
     http_response_code(400);
-    echo json_encode(['error' => 'Período é obrigatório']);
+    echo json_encode(['error' => 'Período e ID do usuário são obrigatórios']);
     exit;
 }
 
+// SQL atualizado com strip_tags para limpar a descrição e filtro por usuário
 $sql = "
     SELECT 
         t.id,
@@ -19,16 +21,13 @@ $sql = "
         IFNULL(t.solvedate, t.closedate) as data_solucao,
         it.completename as servico,
         fc_users_name(t.users_id_recipient) AS posto_trabalho, 
-        IFNULL(fc_groups_ticket(t.id, 2), fc_manager_users(t.users_id_recipient)) AS gerencia_origem,
-        fc_leader_prepost(t.users_id_recipient, 1) AS lider,
-        fc_leader_prepost(t.users_id_recipient, 2) AS preposto,
         c.periodo as periodo_avaliado,
-        'Fechado' as status,
-        IFNULL(fc_task_time(t.id)/3600, 0) AS tempo_total
+        'Fechado' as status
     FROM glpi_tickets t
     LEFT JOIN glpi_itilcategories it ON it.id = t.itilcategories_id
     INNER JOIN calendario c ON (DATE(t.closedate) = c.data OR DATE(t.solvedate) = c.data)
     WHERE c.periodo = ?
+    AND t.users_id_recipient = ?
     AND t.status = 6
     AND t.is_deleted = 0
     AND it.completename NOT REGEXP 'Justificativa'
@@ -37,8 +36,15 @@ $sql = "
 
 try {
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([$period]);
+    $stmt->execute([$period, $userId]);
     $results = $stmt->fetchAll();
+    
+    // Limpando HTML da descrição antes de enviar
+    foreach ($results as &$row) {
+        $cleanDesc = html_entity_decode($row['descricao']);
+        $cleanDesc = strip_tags($cleanDesc);
+        $row['descricao'] = trim(preg_replace('/\s+/', ' ', $cleanDesc));
+    }
     
     echo json_encode($results);
 } catch (Exception $e) {

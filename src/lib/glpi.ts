@@ -13,7 +13,6 @@ export interface TicketReport {
   preposto: string;
   periodo_avaliado: string;
   status: string;
-  tempo_total: number;
 }
 
 export type UserProfile = 'Posto de Trabalho' | 'Lider' | 'Preposto';
@@ -47,18 +46,17 @@ export const glpiService = {
     return response.json();
   },
 
-  async getTickets(period: string): Promise<TicketReport[]> {
-    const params = new URLSearchParams({ period });
+  async getTickets(period: string, userId: number): Promise<TicketReport[]> {
+    const params = new URLSearchParams({ 
+      period, 
+      user_id: userId.toString() 
+    });
     const response = await fetch(`api/tickets.php?${params.toString()}`);
     
     if (!response.ok) {
       throw new Error('Falha ao carregar tickets');
     }
 
-    const data = await response.json();
-    return data.map((t: any) => ({
-      ...t,
-      tempo_total: parseFloat(t.tempo_total) || 0
-    }));
+    return response.json();
   }
 };

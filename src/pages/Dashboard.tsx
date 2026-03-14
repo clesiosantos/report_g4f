@@ -27,7 +27,8 @@ const Dashboard = () => {
       navigate('/');
       return;
     }
-    setUser(JSON.parse(storedUser));
+    const parsedUser = JSON.parse(storedUser);
+    setUser(parsedUser);
     
     const init = async () => {
       setLoadingPeriods(true);
@@ -37,7 +38,7 @@ const Dashboard = () => {
         if (availablePeriods.length > 0) {
           const defaultPeriod = availablePeriods[0];
           setSelectedPeriod(defaultPeriod);
-          loadData(defaultPeriod);
+          loadData(defaultPeriod, parsedUser.id);
         }
       } catch (err) {
         showError("Erro ao carregar períodos.");
@@ -49,11 +50,13 @@ const Dashboard = () => {
     init();
   }, []);
 
-  const loadData = async (period: string) => {
-    if (!period) return;
+  const loadData = async (period: string, userId?: number) => {
+    const targetUserId = userId || user?.id;
+    if (!period || !targetUserId) return;
+    
     setLoading(true);
     try {
-      const data = await glpiService.getTickets(period);
+      const data = await glpiService.getTickets(period, targetUserId);
       setTickets(data);
     } catch (err) {
       showError("Erro ao carregar atividades.");
@@ -67,7 +70,6 @@ const Dashboard = () => {
     navigate('/');
   };
 
-  // Cálculo de Dias Lançados (Dias únicos com solução)
   const totalDays = new Set(
     tickets
       .filter(t => t.data_solucao)
@@ -100,6 +102,7 @@ const Dashboard = () => {
       </header>
 
       <main className="p-6 max-w-7xl mx-auto space-y-6">
+        {/* Filtros e Cards de resumo mantidos aqui... */}
         <Card className="border-none shadow-md bg-white">
           <CardHeader className="pb-3 border-b mb-4">
             <CardTitle className="text-lg flex items-center gap-2 text-slate-700">
@@ -199,14 +202,13 @@ const Dashboard = () => {
                     <TableHead className="font-bold text-slate-700">Título / Descrição</TableHead>
                     <TableHead className="font-bold text-slate-700">Serviço</TableHead>
                     <TableHead className="font-bold text-slate-700">Posto de Trabalho</TableHead>
-                    <TableHead className="font-bold text-slate-700">Solução</TableHead>
-                    <TableHead className="text-right font-bold text-slate-700">Horas</TableHead>
+                    <TableHead className="font-bold text-slate-700">Data Lançamento</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-64 text-center">
+                      <TableCell colSpan={5} className="h-64 text-center">
                         <div className="flex flex-col items-center gap-2">
                           <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
                           <p className="text-slate-500 font-medium">Consultando base do GLPI...</p>
@@ -215,7 +217,7 @@ const Dashboard = () => {
                     </TableRow>
                   ) : tickets.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-64 text-center text-slate-500">
+                      <TableCell colSpan={5} className="h-64 text-center text-slate-500">
                         Nenhuma atividade encontrada para este período.
                       </TableCell>
                     </TableRow>
@@ -226,7 +228,7 @@ const Dashboard = () => {
                         <TableCell className="max-w-md">
                           <div className="font-semibold text-slate-800">{ticket.titulo}</div>
                           <div className="text-xs text-slate-500 line-clamp-2 mt-1 italic leading-relaxed">
-                            "{ticket.descricao}"
+                            {ticket.descricao}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -241,12 +243,7 @@ const Dashboard = () => {
                           </div>
                         </TableCell>
                         <TableCell className="text-sm text-slate-600">
-                          {ticket.data_solucao ? new Date(ticket.data_solucao).toLocaleDateString('pt-BR') : '-'}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className="font-mono font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded">
-                            {ticket.tempo_total.toFixed(1)}h
-                          </span>
+                          {ticket.data_criacao ? new Date(ticket.data_criacao).toLocaleDateString('pt-BR') : '-'}
                         </TableCell>
                       </TableRow>
                     ))
