@@ -12,28 +12,32 @@ if (empty($user) || empty($pass)) {
     exit;
 }
 
-// Aqui você pode implementar a lógica de conferir a senha (hash do GLPI)
-// Ou usar a API do GLPI via cURL para validar a sessão.
-// Por enquanto, vamos simular a validação baseada no banco:
+try {
+    // Busca o usuário e o hash da senha no banco do GLPI
+    $stmt = $pdo->prepare("SELECT id, name, password, realname, firstname FROM glpi_users WHERE name = ? AND is_deleted = 0 LIMIT 1");
+    $stmt->execute([$user]);
+    $userData = $stmt->fetch();
 
-$stmt = $pdo->prepare("SELECT id, name, realname, firstname FROM glpi_users WHERE name = ? LIMIT 1");
-$stmt->execute([$user]);
-$userData = $stmt->fetch();
+    // Verifica se o usuário existe e se a senha bate com o hash do GLPI
+    if ($userData && password_verify($pass, $userData['password'])) {
+        
+        // Lógica de Perfil (Pode ser expandida consultando a tabela glpi_profiles_users)
+        $profile = 'Posto de Trabalho';
+        if (str_contains(strtolower($user), 'lider')) $profile = 'Lider';
+        if (str_contains(strtolower($user), 'preposto')) $profile = 'Preposto';
 
-if ($userData) {
-    // Mock de perfil baseado no nome para o exemplo
-    $profile = 'Posto de Trabalho';
-    if (strpos($user, 'lider') !== false) $profile = 'Lider';
-    if (strpos($user, 'preposto') !== false) $profile = 'Preposto';
-
-    echo json_encode([
-        'id' => $userData['id'],
-        'name' => $userData['firstname'] . ' ' . $userData['realname'],
-        'profile' => $profile,
-        'session_token' => bin2hex(random_bytes(16))
-    ]);
-} else {
-    http_response_code(401);
-    echo json_encode(['error' => 'Usuário não encontrado']);
+        echo json_encode([
+            'id' => $userData['id'],
+            'name' => ($userData['firstname'] ?? '') . ' ' . ($userData['realname'] ?? ''),
+            'profile' => $profile,
+            'session_token' => bin2hex(random_bytes(32))
+        ]);
+    } else {
+        http_response_code(401);
+        echo json_encode(['error' => 'Usuário ou senha inválidos']);
+    }
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Erro interno no servidor']);
 }
 ?>
