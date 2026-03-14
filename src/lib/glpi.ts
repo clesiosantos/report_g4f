@@ -27,7 +27,8 @@ export interface GLPIUser {
 
 export const glpiService = {
   async login(user: string, pass: string): Promise<GLPIUser> {
-    const response = await fetch('/api/login.php', {
+    // Usando caminho relativo para funcionar dentro do contexto /report
+    const response = await fetch('api/login.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user, pass })
@@ -47,14 +48,13 @@ export const glpiService = {
       end: filters.end
     });
 
-    const response = await fetch(`/api/tickets.php?${params.toString()}`);
+    const response = await fetch(`api/tickets.php?${params.toString()}`);
     
     if (!response.ok) {
       throw new Error('Falha ao carregar tickets');
     }
 
     const data = await response.json();
-    // Garantir que tempo_total seja número
     return data.map((t: any) => ({
       ...t,
       tempo_total: parseFloat(t.tempo_total) || 0
