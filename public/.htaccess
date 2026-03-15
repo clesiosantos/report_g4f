@@ -1,9 +1,16 @@
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteBase /
-  RewriteRule ^index\.html$ - [L]
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteCond %{REQUEST_FILENAME} !-l
-  RewriteRule . /index.html [L]
+  RewriteBase /report/
+  
+  # Não redirecionar se for um arquivo real, diretório ou link simbólico
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d [OR]
+  RewriteCond %{REQUEST_FILENAME} -l
+  RewriteRule ^ - [L]
+
+  # Não redirecionar chamadas para a API PHP
+  RewriteCond %{REQUEST_URI} !^/report/api/
+
+  # Redirecionar todas as outras rotas para o index.html para o React Router assumir
+  RewriteRule ^ index.html [L]
 </IfModule>

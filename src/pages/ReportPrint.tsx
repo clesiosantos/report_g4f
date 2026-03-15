@@ -11,28 +11,23 @@ const ReportPrint = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Tenta pegar do state da navegação
+    // Tenta pegar do state da navegação (vindo do Dashboard)
     const state = location.state as any;
     
     if (state && state.user && state.period) {
       setData(state);
-      // Agenda a impressão após o render
+      // Agenda a impressão após garantir que o DOM renderizou
       const timer = setTimeout(() => {
-        try {
-          window.print();
-        } catch (e) {
-          console.error("Erro ao abrir diálogo de impressão", e);
-        }
-      }, 1200);
+        window.print();
+      }, 1500);
       return () => clearTimeout(timer);
     } else {
-      // Se não houver state (ex: refresh), tenta recuperar o usuário e volta ao dashboard
+      // Caso de Refresh: tenta recuperar ao menos o usuário do localStorage
       const storedUser = localStorage.getItem('glpi_user');
       if (!storedUser) {
         navigate('/');
       } else {
-        setError("Dados do relatório não encontrados. Por favor, gere o relatório novamente a partir do Dashboard.");
-        setTimeout(() => navigate('/dashboard'), 3000);
+        setError("As informações deste relatório não foram encontradas. Por favor, volte ao Dashboard e clique em 'Exportar PDF' novamente.");
       }
     }
   }, [location, navigate]);
@@ -46,10 +41,7 @@ const ReportPrint = () => {
         'JULHO': 6, 'AGOSTO': 7, 'SETEMBRO': 8, 'OUTUBRO': 9, 'NOVEMBRO': 10, 'DEZEMBRO': 11
       };
 
-      // Limpa a string do período (ex: "MARÇO/2024" ou "MARÇO 2024")
-      const cleanPeriod = data.period.toUpperCase().trim().replace('/', ' ');
-      const parts = cleanPeriod.split(/\s+/);
-      
+      const parts = data.period.toUpperCase().trim().replace('/', ' ').split(/\s+/);
       if (parts.length < 2) return [];
 
       const monthName = parts[0];
@@ -58,23 +50,19 @@ const ReportPrint = () => {
       if (months[monthName] === undefined || isNaN(year)) return [];
 
       const endMonth = months[monthName];
-      // Período termina no dia 09 do mês de referência
       const endDate = new Date(year, endMonth, 9);
-      // Período inicia no dia 10 do mês anterior
       const startDate = new Date(year, endMonth - 1, 10);
 
       const dates = [];
       let current = new Date(startDate);
-      // Limite de segurança para evitar loops infinitos
-      let safetyCount = 0;
-      while (current <= endDate && safetyCount < 40) {
+      let safety = 0;
+      while (current <= endDate && safety < 40) {
         dates.push(current.toISOString().split('T')[0]);
         current.setDate(current.getDate() + 1);
-        safetyCount++;
+        safety++;
       }
       return dates;
     } catch (e) {
-      console.error("Erro ao processar datas do período", e);
       return [];
     }
   }, [data]);
@@ -93,13 +81,13 @@ const ReportPrint = () => {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
-        <div className="bg-amber-50 border border-amber-200 p-6 rounded-lg max-w-md">
-          <h2 className="text-amber-800 font-bold mb-2">Atenção</h2>
-          <p className="text-amber-700 text-sm mb-4">{error}</p>
+      <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
+        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md text-center border-t-4 border-amber-500">
+          <h2 className="text-xl font-bold text-slate-800 mb-4">Relatório Indisponível</h2>
+          <p className="text-slate-600 mb-6">{error}</p>
           <button 
             onClick={() => navigate('/dashboard')}
-            className="bg-amber-600 text-white px-4 py-2 rounded text-sm font-medium"
+            className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors"
           >
             Voltar ao Dashboard
           </button>
@@ -110,8 +98,11 @@ const ReportPrint = () => {
 
   if (!data || fullPeriodDates.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-pulse text-slate-400">Carregando relatório...</div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-slate-500 font-medium">Preparando seu RDA...</p>
+        </div>
       </div>
     );
   }
