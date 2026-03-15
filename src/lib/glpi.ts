@@ -25,8 +25,8 @@ export interface GLPIUser {
   entidade: string;
   lider: string;
   preposto: string;
-  ip: string;
-  session_token: string;
+  ip?: string;
+  session_token?: string;
 }
 
 export const glpiService = {
@@ -62,6 +62,16 @@ export const glpiService = {
       throw new Error('Falha ao carregar tickets');
     }
 
+    return response.json();
+  },
+
+  async getSubordinates(managerId: number, role: string): Promise<GLPIUser[]> {
+    const params = new URLSearchParams({ 
+      manager_id: managerId.toString(), 
+      role: role 
+    });
+    const response = await fetch(`api/subordinates.php?${params.toString()}`);
+    if (!response.ok) throw new Error('Falha ao carregar subordinados');
     return response.json();
   }
 };

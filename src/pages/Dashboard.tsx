@@ -7,8 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { FileText, Download, LogOut, Filter, CalendarDays, Loader2 } from "lucide-react";
-import { glpiService, TicketReport } from '@/lib/glpi';
+import { FileText, Download, LogOut, Filter, CalendarDays, Loader2, Users } from "lucide-react";
+import { glpiService, TicketReport, GLPIUser } from '@/lib/glpi';
 import { showError } from '@/utils/toast';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -16,45 +16,70 @@ const Dashboard = () => {
   const [tickets, setTickets] = useState<TicketReport[]>([]);
   const [periods, setPeriods] = useState<string[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState<string>("");
+  const [subordinates, setSubordinates] = useState<GLPIUser[]>([]);
+  const [selectedColaborador, setSelectedColaborador] = useState<GLPIUser | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingPeriods, setLoadingPeriods] = useState(true);
   
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
+  const isManager = useMemo(() => {
+    return user?.profile.includes('Lider') || user?.profile.includes('Preposto');
+  }, [user]);
+
   useEffect(() => {
     const init = async () => {
       if (!user) return;
       setLoadingPeriods(true);
       try {
+        // Carrega períodos
         const availablePeriods = await glpiService.getPeriods();
         setPeriods(availablePeriods);
-        if (availablePeriods.length > 0) {
-          const defaultPeriod = availablePeriods[0];
-          setSelectedPeriod(defaultPeriod);
-          loadData(defaultPeriod);
+        const defaultPeriod = availablePeriods[0] || "";
+        setSelectedPeriod(defaultPeriod);
+
+        // Se for gestor, busca subordinados
+        if (isManager) {
+          const role = user.profile.includes('Preposto') ? 'Preposto' : 'Lider';
+          const subs = await glpiService.getSubordinates(user.id, role);
+          setSubordinates(subs);
+          // Por padrão, seleciona o próprio gestor ou o primeiro da lista
+          setSelectedColaborador(user);
+          if (defaultPeriod) loadData(defaultPeriod, user.id);
+        } else {
+          setSelectedColaborador(user);
+          if (defaultPeriod) loadData(defaultPeriod, user.id);
         }
       } catch (err) {
-        showError("Erro ao carregar períodos.");
+        showError("Erro na inicialização do painel.");
       } finally {
         setLoadingPeriods(false);
       }
     };
     
     init();
-  }, [user]);
+  }, [user, isManager]);
 
-  const loadData = async (period: string) => {
-    if (!period || !user) return;
+  const loadData = async (period: string, userId: number) => {
+    if (!period || !userId) return;
     
     setLoading(true);
     try {
-      const data = await glpiService.getTickets(period, user.id);
+      const data = await glpiService.getTickets(period, userId);
       setTickets(data);
     } catch (err) {
       showError("Erro ao carregar atividades.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleColaboradorChange = (id: string) => {
+    const colaborador = subordinates.find(s => s.id === parseInt(id)) || (id === user?.id.toString() ? user : null);
+    if (colaborador) {
+      setSelectedColaborador(colaborador);
+      loadData(selectedPeriod, colaborador.id);
     }
   };
 
@@ -69,8 +94,9 @@ const Dashboard = () => {
   }, [tickets]);
 
   const handleExportPDF = () => {
-    if (!selectedPeriod || !user) return;
-    navigate('/print', { state: { tickets, user, period: selectedPeriod } });
+    if (!selectedPeriod || !selectedColaborador) return;
+    // Passamos os dados do colaborador selecionado para o print, não do gestor logado
+    navigate('/print', { state: { tickets, user: selectedColaborador, period: selectedPeriod } });
   };
 
   if (!user) return null;
@@ -85,7 +111,7 @@ const Dashboard = () => {
         <div className="flex items-center gap-4">
           <div className="text-right hidden md:block">
             <p className="text-sm font-bold text-slate-900">{user.name}</p>
-            <p className="text-xs text-blue-600 font-medium">{user.gerencia}</p>
+            <p className="text-xs text-blue-600 font-medium">{user.profile}</p>
           </div>
           <Button variant="ghost" size="icon" onClick={logout} className="hover:text-red-600">
             <LogOut className="w-5 h-5" />
@@ -103,17 +129,39 @@ const Dashboard = () => {
           <CardContent>
             <div className="flex flex-col md:flex-row gap-6 items-end">
               <div className="space-y-2 flex-1 w-full">
-                <Label className="flex items-center gap-2 text-slate-600 font-semibold"><CalendarDays className="w-4 h-4" /> Período de Atividade</Label>
-                <Select value={selectedPeriod} onValueChange={(val) => { setSelectedPeriod(val); loadData(val); }}>
-                  <SelectTrigger className="w-full md:w-64 bg-slate-50">
+                <Label className="flex items-center gap-2 text-slate-600 font-semibold">
+                  <CalendarDays className="w-4 h-4" /> Período
+                </Label>
+                <Select value={selectedPeriod} onValueChange={(val) => { setSelectedPeriod(val); loadData(val, selectedColaborador?.id || user.id); }}>
+                  <SelectTrigger className="w-full bg-slate-50">
                     <SelectValue placeholder={loadingPeriods ? "Carregando..." : "Selecione o período"} />
                   </SelectTrigger>
                   <SelectContent>{periods.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
+
+              {isManager && subordinates.length > 0 && (
+                <div className="space-y-2 flex-1 w-full">
+                  <Label className="flex items-center gap-2 text-slate-600 font-semibold">
+                    <Users className="w-4 h-4" /> Colaborador
+                  </Label>
+                  <Select value={selectedColaborador?.id.toString()} onValueChange={handleColaboradorChange}>
+                    <SelectTrigger className="w-full bg-slate-50 border-blue-100">
+                      <SelectValue placeholder="Selecione o colaborador" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={user.id.toString()}>{user.name} (Meu RDA)</SelectItem>
+                      {subordinates.map(sub => (
+                        <SelectItem key={sub.id} value={sub.id.toString()}>{sub.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="flex gap-2 w-full md:w-auto">
-                <Button className="flex-1 md:w-48 bg-blue-600 hover:bg-blue-700" onClick={() => loadData(selectedPeriod)} disabled={loading}>
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileText className="w-4 h-4 mr-2" />} Atualizar
+                <Button className="flex-1 md:w-40 bg-blue-600 hover:bg-blue-700" onClick={() => loadData(selectedPeriod, selectedColaborador?.id || user.id)} disabled={loading}>
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4 mr-2" />} Atualizar
                 </Button>
                 <Button variant="outline" className="flex gap-2" onClick={handleExportPDF} disabled={!selectedPeriod || loading}>
                   <Download className="w-4 h-4" /> Exportar PDF
@@ -125,6 +173,15 @@ const Dashboard = () => {
 
         <Card className="border-none shadow-lg overflow-hidden bg-white">
           <CardContent className="p-0">
+            <div className="bg-blue-50/50 p-4 border-b flex justify-between items-center">
+              <div className="text-sm">
+                <span className="text-slate-500">Exibindo relatório de:</span>
+                <span className="ml-2 font-bold text-blue-800">{selectedColaborador?.name}</span>
+              </div>
+              <div className="text-xs font-mono bg-white px-2 py-1 rounded border border-blue-100">
+                {tickets.length} atividades encontradas
+              </div>
+            </div>
             <Table>
               <TableHeader className="bg-slate-50">
                 <TableRow>
@@ -147,7 +204,12 @@ const Dashboard = () => {
                       <div className="space-y-3">
                         {items.map((item, idx) => (
                           <div key={item.id} className={idx > 0 ? "pt-2 border-t border-slate-100" : ""}>
-                            <div className="font-bold text-sm text-slate-800">{item.titulo}</div>
+                            <div className="font-bold text-sm text-slate-800 flex justify-between">
+                              {item.titulo}
+                              <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-normal">
+                                {item.status}
+                              </span>
+                            </div>
                             <div className="text-xs text-slate-500 italic leading-relaxed">{item.descricao}</div>
                           </div>
                         ))}
