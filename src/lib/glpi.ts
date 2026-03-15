@@ -23,6 +23,8 @@ export interface GLPIUser {
   gerencia: string;
   profile: string;
   entidade: string;
+  lider: string;
+  preposto: string;
   session_token: string;
 }
 

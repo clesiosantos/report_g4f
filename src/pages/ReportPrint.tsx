@@ -74,6 +74,8 @@ const ReportPrint = () => {
 
   if (!data) return <div className="p-20 text-center">Carregando...</div>;
 
+  const approverName = data.user.lider || data.user.preposto || "Gestor Responsável";
+
   return (
     <div className="bg-white min-h-screen p-8 print:p-0 font-sans text-slate-900">
       <style dangerouslySetInnerHTML={{ __html: `
@@ -157,9 +159,7 @@ const ReportPrint = () => {
           </tbody>
         </table>
 
-        {/* Seção de Assinaturas */}
         <div className="mt-12 grid grid-cols-2 gap-12 items-end">
-          {/* Assinatura Eletrônica do Colaborador */}
           <div className="flex flex-col items-center">
             <div className="mb-1 signature-font text-xl text-blue-800">{data.user.name}</div>
             <div className="w-full border-t border-slate-800 pt-1 text-center">
@@ -171,17 +171,16 @@ const ReportPrint = () => {
             </div>
           </div>
 
-          {/* Assinatura do Gestor */}
           <div className="flex flex-col items-center pb-[10px]">
-            <div className="h-10 w-full"></div> {/* Espaço para assinatura manual */}
+            <div className="h-10 w-full"></div>
             <div className="w-full border-t border-slate-800 pt-1 text-center">
               <p className="text-[9px] font-bold">Aprovação / Validação</p>
-              <p className="text-[7px] text-slate-500 mt-1 uppercase">Gestor Responsável</p>
+              <p className="text-[8px] text-slate-700 mt-1 uppercase font-bold">{approverName}</p>
+              <p className="text-[7px] text-slate-500 uppercase">{data.user.lider ? "Líder" : (data.user.preposto ? "Preposto" : "Gestor")}</p>
             </div>
           </div>
         </div>
 
-        {/* Rodapé Interno */}
         <div className="mt-10 pt-2 border-t border-slate-200 text-[7px] text-slate-400 flex justify-between italic">
           <span>Relatório gerado via Portal RDA - Integrado ao GLPI</span>
           <span>Página 1 de 1</span>
