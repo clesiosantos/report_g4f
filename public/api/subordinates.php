@@ -5,50 +5,45 @@ header('Content-Type: application/json');
 $managerId = $_GET['manager_id'] ?? '';
 $role = $_GET['role'] ?? '';
 
-if (empty($managerId) || empty($role)) {
+if (empty($managerId)) {
     http_response_code(400);
-    echo json_encode(['error' => 'Parâmetros insuficientes']);
+    echo json_encode(['error' => 'ID do gestor é obrigatório']);
     exit;
 }
 
 try {
-    // Verificar se quem está solicitando é o usuário 'glpi' (Super Usuário)
+    // Busca o username do solicitante para checar se é o 'glpi'
     $stmtCheck = $pdo->prepare("SELECT name FROM glpi_users WHERE id = ?");
     $stmtCheck->execute([$managerId]);
     $requesterUsername = $stmtCheck->fetchColumn();
 
     if ($requesterUsername === 'glpi') {
-        // Se for o usuário glpi, busca TODOS os colaboradores ativos
+        // SQL Otimizado para Super Usuário (Retorna todos os usuários ativos)
         $sql = "
             SELECT 
                 u.id, 
                 CONCAT(IFNULL(u.firstname, ''), ' ', IFNULL(u.realname, '')) as name,
                 u.name as username,
-                MAX(p.chavecolaboradorfield) AS chave,
-                MAX(pr.name) AS profile,
-                MAX(e.email) AS email,
-                MAX(en.name) AS entidade,
+                (SELECT chavecolaboradorfield FROM glpi_plugin_fields_useragrupamentos WHERE items_id = u.id LIMIT 1) AS chave,
+                (SELECT pr.name FROM glpi_profiles pr INNER JOIN glpi_profiles_users pu ON pu.profiles_id = pr.id WHERE pu.users_id = u.id LIMIT 1) AS profile,
+                (SELECT email FROM glpi_useremails WHERE users_id = u.id AND is_default = 1 LIMIT 1) AS email,
+                (SELECT en.name FROM glpi_entities en INNER JOIN glpi_profiles_users pu ON pu.entities_id = en.id WHERE pu.users_id = u.id LIMIT 1) AS entidade,
                 fc_manager_users(u.id) AS gerencia,
                 fc_leader_prepost(u.id, 1) AS lider,
                 fc_leader_prepost(u.id, 2) AS preposto
             FROM glpi_users u
-            LEFT JOIN glpi_useremails e ON (e.users_id = u.id AND e.is_default = 1)
-            LEFT JOIN glpi_plugin_fields_useragrupamentos p ON (p.items_id = u.id)
-            LEFT JOIN glpi_profiles_users pu ON (pu.users_id = u.id)
-            LEFT JOIN glpi_profiles pr ON (pr.id = pu.profiles_id)
-            LEFT JOIN glpi_entities en ON (en.id = pu.entities_id)
             WHERE u.is_deleted = 0
-            GROUP BY u.id, name, username, gerencia, lider, preposto
-            ORDER BY u.firstname ASC
+            ORDER BY u.firstname ASC, u.realname ASC
         ";
         $stmt = $pdo->query($sql);
-        echo json_encode($stmt->fetchAll());
+        $results = $stmt->fetchAll();
+        echo json_encode($results);
         exit;
     }
 
     // Lógica normal para Líderes e Prepostos
     $roleType = (stripos($role, 'PREPOSTO') !== false) ? 2 : 1;
-
+    
     $stmtUser = $pdo->prepare("SELECT CONCAT(IFNULL(firstname, ''), ' ', IFNULL(realname, '')) as fullname FROM glpi_users WHERE id = ?");
     $stmtUser->execute([$managerId]);
     $managerName = $stmtUser->fetchColumn();
@@ -63,22 +58,16 @@ try {
             u.id, 
             CONCAT(IFNULL(u.firstname, ''), ' ', IFNULL(u.realname, '')) as name,
             u.name as username,
-            MAX(p.chavecolaboradorfield) AS chave,
-            MAX(pr.name) AS profile,
-            MAX(e.email) AS email,
-            MAX(en.name) AS entidade,
+            (SELECT chavecolaboradorfield FROM glpi_plugin_fields_useragrupamentos WHERE items_id = u.id LIMIT 1) AS chave,
+            (SELECT pr.name FROM glpi_profiles pr INNER JOIN glpi_profiles_users pu ON pu.profiles_id = pr.id WHERE pu.users_id = u.id LIMIT 1) AS profile,
+            (SELECT email FROM glpi_useremails WHERE users_id = u.id AND is_default = 1 LIMIT 1) AS email,
+            (SELECT en.name FROM glpi_entities en INNER JOIN glpi_profiles_users pu ON pu.entities_id = en.id WHERE pu.users_id = u.id LIMIT 1) AS entidade,
             fc_manager_users(u.id) AS gerencia,
             fc_leader_prepost(u.id, 1) AS lider,
             fc_leader_prepost(u.id, 2) AS preposto
         FROM glpi_users u
-        LEFT JOIN glpi_useremails e ON (e.users_id = u.id AND e.is_default = 1)
-        LEFT JOIN glpi_plugin_fields_useragrupamentos p ON (p.items_id = u.id)
-        LEFT JOIN glpi_profiles_users pu ON (pu.users_id = u.id)
-        LEFT JOIN glpi_profiles pr ON (pr.id = pu.profiles_id)
-        LEFT JOIN glpi_entities en ON (en.id = pu.entities_id)
         WHERE fc_leader_prepost(u.id, ?) = ?
         AND u.is_deleted = 0
-        GROUP BY u.id, name, username, gerencia, lider, preposto
         ORDER BY u.firstname ASC
     ";
 

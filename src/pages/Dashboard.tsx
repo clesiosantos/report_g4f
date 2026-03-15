@@ -24,8 +24,10 @@ const Dashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
+  // Flag exclusiva para o usuário 'glpi'
   const isSuperUser = useMemo(() => user?.username === 'glpi', [user]);
 
+  // Se for super usuário, ele é automaticamente gestor com acesso total
   const isManager = useMemo(() => {
     if (isSuperUser) return true;
     if (!user?.profile) return false;
@@ -35,7 +37,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (user) {
-      document.title = `Portal RDA - ${isSuperUser ? 'ADMIN' : user.name}`;
+      document.title = `Portal RDA - ${isSuperUser ? 'ADMINISTRADOR' : user.name}`;
     }
   }, [user, isSuperUser]);
 
@@ -50,9 +52,8 @@ const Dashboard = () => {
         setSelectedPeriod(defaultPeriod);
 
         if (isManager) {
-          const profile = user.profile?.toUpperCase() || "";
-          // Se for superuser passamos 'Admin', caso contrário identificamos o papel real
-          const role = isSuperUser ? 'Admin' : (profile.includes('PREPOSTO') ? 'Preposto' : 'Lider');
+          // Para o 'glpi', o papel passado é irrelevante no backend agora, mas mantemos a coerência
+          const role = isSuperUser ? 'SUPER_ADMIN' : (user.profile?.toUpperCase().includes('PREPOSTO') ? 'Preposto' : 'Lider');
           const subs = await glpiService.getSubordinates(user.id, role);
           setSubordinates(subs);
           setSelectedColaborador(user);
@@ -62,7 +63,7 @@ const Dashboard = () => {
           if (defaultPeriod) loadData(defaultPeriod, user.id);
         }
       } catch (err) {
-        showError("Erro na inicialização do painel Fisco.");
+        showError("Erro na inicialização do painel administrativo.");
       } finally {
         setLoadingPeriods(false);
       }
@@ -86,6 +87,7 @@ const Dashboard = () => {
   };
 
   const handleColaboradorChange = (id: string) => {
+    // Busca na lista de subordinados ou verifica se é o próprio usuário logado
     const colaborador = subordinates.find(s => s.id === parseInt(id)) || (id === user?.id.toString() ? user : null);
     if (colaborador) {
       setSelectedColaborador(colaborador);
@@ -127,12 +129,12 @@ const Dashboard = () => {
         <div className="flex items-center gap-4">
           <div className="text-right hidden md:block">
             <div className="flex items-center gap-1 justify-end">
-              {isSuperUser && <ShieldCheck className="w-4 h-4 text-amber-500" />}
+              {isSuperUser && <ShieldCheck className="w-4 h-4 text-amber-500" title="Acesso Super Admin" />}
               <p className="text-sm font-bold text-slate-900">{user.name}</p>
             </div>
-            <p className="text-xs text-blue-600 font-medium">{isSuperUser ? 'Administrador do Sistema' : user.profile}</p>
+            <p className="text-xs text-blue-600 font-medium">{isSuperUser ? 'Acesso Administrativo Total' : user.profile}</p>
           </div>
-          <Button variant="ghost" size="icon" onClick={logout} className="hover:text-red-600">
+          <Button variant="ghost" size="icon" onClick={logout} className="hover:text-red-600" title="Sair">
             <LogOut className="w-5 h-5" />
           </Button>
         </div>
@@ -141,35 +143,44 @@ const Dashboard = () => {
       <main className="p-6 max-w-7xl mx-auto space-y-6">
         <Card className="bg-white border-none shadow-md">
           <CardHeader className="pb-3 border-b mb-4">
-            <CardTitle className="text-lg flex items-center gap-2 text-slate-700">
-              <Filter className="w-4 h-4 text-blue-600" /> Parâmetros Fisco {isSuperUser && <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full ml-2 uppercase tracking-wider">Modo SuperUsuário</span>}
+            <CardTitle className="text-lg flex items-center gap-2 text-slate-700 font-bold">
+              <Filter className="w-4 h-4 text-blue-600" /> 
+              Filtros de Atividade 
+              {isSuperUser && (
+                <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full ml-2 uppercase tracking-widest font-bold">
+                  Modo Super Admin
+                </span>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col md:flex-row gap-6 items-end">
               <div className="space-y-2 flex-1 w-full">
                 <Label className="flex items-center gap-2 text-slate-600 font-semibold">
-                  <CalendarDays className="w-4 h-4" /> Período
+                  <CalendarDays className="w-4 h-4 text-blue-500" /> Período Competência
                 </Label>
                 <Select value={selectedPeriod} onValueChange={(val) => { setSelectedPeriod(val); loadData(val, selectedColaborador?.id || user.id); }}>
-                  <SelectTrigger className="w-full bg-slate-50">
-                    <SelectValue placeholder={loadingPeriods ? "Carregando..." : "Selecione o período"} />
+                  <SelectTrigger className="w-full bg-slate-50 border-slate-200">
+                    <SelectValue placeholder={loadingPeriods ? "Carregando meses..." : "Selecione o período"} />
                   </SelectTrigger>
-                  <SelectContent>{periods.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+                  <SelectContent>
+                    {periods.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                  </SelectContent>
                 </Select>
               </div>
 
               {isManager && (
                 <div className="space-y-2 flex-1 w-full">
                   <Label className="flex items-center gap-2 text-slate-600 font-semibold">
-                    <Users className="w-4 h-4" /> Colaborador {isSuperUser && "(Todos)"}
+                    <Users className="w-4 h-4 text-blue-500" /> 
+                    {isSuperUser ? "Selecionar Qualquer Colaborador" : "Subordinados Diretos"}
                   </Label>
                   <Select value={selectedColaborador?.id.toString()} onValueChange={handleColaboradorChange}>
-                    <SelectTrigger className="w-full bg-slate-50 border-blue-100">
-                      <SelectValue placeholder="Selecione o colaborador" />
+                    <SelectTrigger className="w-full bg-slate-50 border-blue-100 ring-offset-blue-50">
+                      <SelectValue placeholder="Busque ou selecione um nome" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={user.id.toString()}>{user.name} (Eu)</SelectItem>
+                      <SelectItem value={user.id.toString()}>{user.name} (Meu Perfil)</SelectItem>
                       {subordinates.filter(s => s.id !== user.id).map(sub => (
                         <SelectItem key={sub.id} value={sub.id.toString()}>{sub.name}</SelectItem>
                       ))}
@@ -179,11 +190,11 @@ const Dashboard = () => {
               )}
 
               <div className="flex gap-2 w-full md:w-auto">
-                <Button className="flex-1 md:w-40 bg-blue-700 hover:bg-blue-800" onClick={() => loadData(selectedPeriod, selectedColaborador?.id || user.id)} disabled={loading}>
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4 mr-2" />} Atualizar
+                <Button className="flex-1 md:w-40 bg-blue-700 hover:bg-blue-800 shadow-md" onClick={() => loadData(selectedPeriod, selectedColaborador?.id || user.id)} disabled={loading}>
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><FileText className="w-4 h-4 mr-2" /> Visualizar</>}
                 </Button>
-                <Button variant="outline" className="flex gap-2" onClick={handleExportPDF} disabled={!selectedPeriod || loading}>
-                  <Download className="w-4 h-4" /> Exportar PDF
+                <Button variant="outline" className="flex gap-2 border-slate-300 hover:bg-slate-50" onClick={handleExportPDF} disabled={!selectedPeriod || loading || tickets.length === 0}>
+                  <Download className="w-4 h-4" /> Gerar RDA
                 </Button>
               </div>
             </div>
@@ -193,42 +204,55 @@ const Dashboard = () => {
         <Card className="border-none shadow-lg overflow-hidden bg-white">
           <CardContent className="p-0">
             <Table>
-              <TableHeader className="bg-slate-50">
+              <TableHeader className="bg-slate-100/50">
                 <TableRow>
-                  <TableHead className="w-[120px] font-bold">Data</TableHead>
-                  <TableHead className="font-bold">Atividades Lançadas (Fisco)</TableHead>
-                  <TableHead className="w-[120px] font-bold text-center">Chamados</TableHead>
+                  <TableHead className="w-[140px] font-bold text-slate-700">Data Atividade</TableHead>
+                  <TableHead className="font-bold text-slate-700">Descrição das Atividades (GLPI)</TableHead>
+                  <TableHead className="w-[140px] font-bold text-center text-slate-700">Tickets</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={3} className="h-64 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-600" /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={3} className="h-64 text-center"><Loader2 className="w-10 h-10 animate-spin mx-auto text-blue-600 opacity-50" /><p className="mt-4 text-slate-500 font-medium">Extraindo dados do GLPI...</p></TableCell></TableRow>
                 ) : groupedData.length === 0 ? (
-                  <TableRow><TableCell colSpan={3} className="h-32 text-center text-slate-400">Nenhum chamado no período selecionado para este colaborador.</TableCell></TableRow>
+                  <TableRow>
+                    <TableCell colSpan={3} className="h-48 text-center">
+                      <div className="flex flex-col items-center justify-center text-slate-400">
+                        <CalendarDays className="w-12 h-12 mb-2 opacity-20" />
+                        <p>Nenhuma atividade encontrada para este colaborador no período selecionado.</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 ) : groupedData.map(([date, items]) => (
-                  <TableRow key={date} className="hover:bg-slate-50 align-top">
-                    <TableCell className="font-bold text-slate-700 py-4">
+                  <TableRow key={date} className="hover:bg-slate-50/80 transition-colors align-top">
+                    <TableCell className="font-bold text-slate-700 py-5">
                       {new Date(date + 'T12:00:00').toLocaleDateString('pt-BR')}
                     </TableCell>
-                    <TableCell className="py-4">
-                      <div className="space-y-3">
+                    <TableCell className="py-5">
+                      <div className="space-y-4">
                         {items.map((item, idx) => (
-                          <div key={item.id} className={idx > 0 ? "pt-2 border-t border-slate-100" : ""}>
-                            <div className="font-bold text-sm text-slate-800 flex justify-between">
-                              {item.titulo}
-                              <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-normal">
+                          <div key={item.id} className={idx > 0 ? "pt-3 border-t border-slate-100" : ""}>
+                            <div className="font-bold text-sm text-slate-800 flex justify-between items-start">
+                              <span className="leading-tight">{item.titulo}</span>
+                              <span className={`text-[9px] uppercase px-2 py-0.5 rounded-full font-bold ml-4 whitespace-nowrap ${
+                                item.status === 'Solucionado' || item.status === 'Fechado' 
+                                ? 'bg-green-100 text-green-700' 
+                                : 'bg-amber-100 text-amber-700'
+                              }`}>
                                 {item.status}
                               </span>
                             </div>
-                            <div className="text-xs text-slate-500 italic leading-relaxed">{item.descricao}</div>
+                            <div className="text-xs text-slate-500 mt-1.5 leading-relaxed text-justify pr-4">{item.descricao}</div>
                           </div>
                         ))}
                       </div>
                     </TableCell>
-                    <TableCell className="py-4 text-center">
-                      <div className="flex flex-wrap justify-center gap-1">
+                    <TableCell className="py-5 text-center">
+                      <div className="flex flex-wrap justify-center gap-1.5 max-w-[120px] mx-auto">
                         {items.map(item => (
-                          <span key={item.id} className="text-[10px] font-mono font-bold px-1 py-0.5 bg-blue-50 text-blue-700 rounded border border-blue-100">#{item.id}</span>
+                          <span key={item.id} className="text-[10px] font-mono font-bold px-2 py-1 bg-blue-50 text-blue-700 rounded border border-blue-100 shadow-sm">
+                            #{item.id}
+                          </span>
                         ))}
                       </div>
                     </TableCell>
