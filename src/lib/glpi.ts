@@ -14,6 +14,7 @@ export interface TicketReport {
   status: string;
   fiscal_campo: string;      // Nome do Fiscal
   status_aprovacao: string;  // Status (Ex: APROVADO)
+  data_aprovacao_solicitada?: string; // Nova data para o Dashboard
 }
 
 export interface GLPIUser {

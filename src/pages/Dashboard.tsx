@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { LogOut, Filter, Loader2, Download, CheckCircle2, XCircle } from "lucide-react";
+import { LogOut, Filter, Loader2, Download, CheckCircle2, XCircle, CalendarClock } from "lucide-react";
 import { glpiService, TicketReport, GLPIUser } from '@/lib/glpi';
 import { showError } from '@/utils/toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,7 +24,6 @@ const Dashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Verifica se o usuário logado é o administrador padrão 'glpi'
   const isSuperUser = useMemo(() => user?.username?.toLowerCase() === 'glpi', [user]);
   
   const isManager = useMemo(() => {
@@ -45,7 +44,6 @@ const Dashboard = () => {
         setSelectedPeriod(defaultPeriod);
 
         if (isManager) {
-          // Se for super usuário, envia explicitamente o papel SUPER_ADMIN
           const role = isSuperUser ? 'SUPER_ADMIN' : (user.profile?.toUpperCase().includes('PREPOSTO') ? 'Preposto' : 'Lider');
           const subs = await glpiService.getSubordinates(user.id, role);
           setSubordinates(subs);
@@ -91,6 +89,16 @@ const Dashboard = () => {
   const handleExportPDF = () => {
     if (!selectedPeriod || !selectedColaborador || !user) return;
     navigate('/print', { state: { tickets, user: selectedColaborador, currentUser: user, period: selectedPeriod } });
+  };
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '-';
+    try {
+      const d = new Date(dateStr.replace(' ', 'T'));
+      return d.toLocaleDateString('pt-BR');
+    } catch {
+      return dateStr;
+    }
   };
 
   if (!user) return null;
@@ -147,23 +155,36 @@ const Dashboard = () => {
           <Table>
             <TableHeader className="bg-slate-50">
               <TableRow>
-                <TableHead className="w-[140px]">Data</TableHead>
+                <TableHead className="w-[120px]">Data Atividade</TableHead>
+                <TableHead className="w-[120px]">Criac. Relatório</TableHead>
                 <TableHead>Atividade e Fiscalização</TableHead>
                 <TableHead className="text-center">Tickets</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={3} className="h-64 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={4} className="h-64 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" /></TableCell></TableRow>
               ) : groupedData.map(([date, items]) => (
                 <TableRow key={date}>
                   <TableCell className="font-bold py-5">{new Date(date + 'T12:00:00').toLocaleDateString('pt-BR')}</TableCell>
+                  <TableCell className="py-5 text-slate-500 text-xs font-medium">
+                    <div className="space-y-4">
+                      {items.map((item, idx) => (
+                        <div key={item.id} className={idx > 0 ? "pt-3 border-t border-transparent" : ""}>
+                          <div className="flex items-center gap-1">
+                            <CalendarClock className="w-3 h-3" />
+                            {formatDate(item.data_aprovacao_solicitada)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </TableCell>
                   <TableCell className="py-5">
                     <div className="space-y-4">
                       {items.map((item, idx) => (
                         <div key={item.id} className={idx > 0 ? "pt-3 border-t border-slate-100" : ""}>
                           <div className="font-bold text-slate-800">{item.titulo}</div>
-                          <p className="text-xs text-slate-500 mt-1">{item.descricao}</p>
+                          <p className="text-xs text-slate-500 mt-1 line-clamp-2">{item.descricao}</p>
                           <div className="mt-2 flex items-center gap-4 text-[10px] font-bold uppercase">
                             <span className="text-slate-400">Fiscal: <span className="text-slate-600">{item.fiscal_campo || 'Aguardando'}</span></span>
                             {item.status_aprovacao && (
@@ -183,7 +204,7 @@ const Dashboard = () => {
                 </TableRow>
               ))}
               {tickets.length === 0 && !loading && (
-                <TableRow><TableCell colSpan={3} className="h-32 text-center text-slate-400">Nenhuma atividade encontrada para este período/colaborador.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={4} className="h-32 text-center text-slate-400">Nenhuma atividade encontrada para este período/colaborador.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
