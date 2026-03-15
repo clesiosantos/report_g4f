@@ -105,64 +105,65 @@ const ReportPrint = () => {
           <img src="https://raw.githubusercontent.com/clesiosantos/glpihmg4f/main/LOGOAZUL.png" alt="Logo" className="h-8 w-auto" />
         </div>
 
-        <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-[9px] border border-slate-300 p-3 rounded mb-4 bg-slate-50/20">
-          <div className="border-b border-slate-100"><span className="font-bold">COLABORADOR:</span> {data.user.name}</div>
-          <div className="border-b border-slate-100"><span className="font-bold">NOME DE USUÁRIO:</span> {data.user.username}</div>
-          <div className="border-b border-slate-100"><span className="font-bold">CHAVE:</span> {data.user.chave}</div>
-          <div className="border-b border-slate-100"><span className="font-bold">GERÊNCIA:</span> {data.user.gerencia}</div>
-          <div className="border-b border-slate-100"><span className="font-bold">CARGO:</span> {data.user.profile}</div>
-          <div className="border-b border-slate-100"><span className="font-bold">E-MAIL:</span> {data.user.email}</div>
-          <div className="border-b border-slate-100"><span className="font-bold">ATIVIDADE:</span> {data.user.entidade}</div>
-          <div className="border-b border-slate-100 font-bold text-blue-800 text-[10px]">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[10px] border border-slate-300 p-4 rounded-md mb-6 bg-slate-50/20">
+          <div className="border-b border-slate-100 pb-1"><span className="font-bold">COLABORADOR:</span> {data.user.name}</div>
+          <div className="border-b border-slate-100 pb-1"><span className="font-bold">NOME DE USUÁRIO:</span> {data.user.username}</div>
+          <div className="border-b border-slate-100 pb-1"><span className="font-bold">CHAVE:</span> {data.user.chave}</div>
+          <div className="border-b border-slate-100 pb-1"><span className="font-bold">GERÊNCIA:</span> {data.user.gerencia}</div>
+          <div className="border-b border-slate-100 pb-1"><span className="font-bold">CARGO:</span> {data.user.profile}</div>
+          <div className="border-b border-slate-100 pb-1"><span className="font-bold">E-MAIL:</span> {data.user.email}</div>
+          <div className="border-b border-slate-100 pb-1"><span className="font-bold">ATIVIDADE:</span> {data.user.entidade}</div>
+          <div className="border-b border-slate-100 pb-1 font-bold text-blue-800 text-[11px]">
             <span className="text-slate-900">PERÍODO:</span> {data.period}
           </div>
         </div>
 
-        <div className="border border-slate-400 rounded overflow-hidden">
-          <div className="bg-slate-100 border-b border-slate-400 p-2 text-[10px] font-bold uppercase tracking-wider text-center">
+        <div className="border border-slate-400 rounded-md overflow-hidden shadow-sm">
+          <div className="bg-slate-100 border-b border-slate-400 p-2.5 text-[11px] font-bold uppercase tracking-widest text-center text-slate-800">
             Atividades Realizadas no Período
           </div>
-          <div className="p-4 space-y-4 min-h-[400px]">
+          <div className="p-5 space-y-4 min-h-[400px]">
             {sortedTickets.length > 0 ? (
-              <table className="w-full text-[9px] border-collapse">
+              <table className="w-full text-[10px] border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-200">
-                    <th className="text-left py-1 w-20">Data Atividade</th>
-                    <th className="text-left py-1">Descrição / Reporte e Fluxo de Aprovação</th>
-                    <th className="text-right py-1 w-24">Ticket</th>
+                  <tr className="border-b border-slate-300">
+                    <th className="text-left py-2 w-24 font-bold text-slate-800">Data</th>
+                    <th className="text-left py-2 font-bold text-slate-800">Descrição / Reporte e Aprovação</th>
+                    <th className="text-right py-2 w-28 font-bold text-slate-800">Ticket</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-200">
                   {sortedTickets.map((ticket) => (
                     <tr key={ticket.id}>
-                      <td className="py-2 align-top font-bold text-slate-700">
+                      <td className="py-4 align-top font-bold text-slate-700">
                         {new Date(ticket.data_criacao.split(' ')[0] + 'T12:00:00').toLocaleDateString('pt-BR')}
                       </td>
-                      <td className="py-2 align-top pr-4">
-                        <div className="font-bold text-slate-900 leading-tight mb-1">{ticket.titulo}</div>
-                        <div className="text-slate-600 leading-relaxed text-[8.5px] mb-2">{ticket.descricao}</div>
+                      <td className="py-4 align-top pr-6">
+                        <div className="font-bold text-slate-900 leading-snug mb-1.5 text-[11px]">{ticket.titulo}</div>
+                        <div className="text-slate-600 leading-relaxed text-[10px] mb-3">{ticket.descricao}</div>
                         
                         {/* Box de Fluxo e Reporte no Impresso */}
-                        <div className="mt-2 p-2 bg-slate-50 border border-slate-200 rounded text-[7.5px] leading-tight space-y-1">
-                          <div className="flex justify-between items-start border-b border-slate-100 pb-1 mb-1">
+                        <div className="mt-3 p-3 bg-slate-50 border border-slate-300 rounded-md text-[9px] leading-tight space-y-2">
+                          <div className="flex justify-between items-center border-b border-slate-200 pb-1.5 mb-1.5">
                             <div>
-                              <span className="font-bold text-blue-700 uppercase">Submissão:</span> {ticket.data_aprovacao_solicitada ? new Date(ticket.data_aprovacao_solicitada.replace(' ', 'T')).toLocaleString('pt-BR') : '-'}
+                              <span className="font-bold text-blue-800 uppercase text-[8px]">Submissão:</span> {ticket.data_aprovacao_solicitada ? new Date(ticket.data_aprovacao_solicitada.replace(' ', 'T')).toLocaleString('pt-BR') : '-'}
                             </div>
                             <div className="text-right">
-                              <span className="font-bold text-slate-800 uppercase">Aprovação:</span> {ticket.status_aprovacao || 'Pendente'}
+                              <span className="font-bold text-slate-800 uppercase text-[8px]">Status:</span> {ticket.status_aprovacao || 'Pendente'}
                             </div>
                           </div>
-                          <div>
-                            <span className="font-bold text-slate-700 uppercase">Fiscal:</span> {ticket.fiscal_campo || 'Aguardando atribuição'}
+                          <div className="pb-1">
+                            <span className="font-bold text-slate-700 uppercase text-[8px]">Fiscal de Campo:</span> {ticket.fiscal_campo || 'Aguardando atribuição'}
                           </div>
                           {ticket.reporte_enviado && (
-                            <div className="mt-1 pt-1 border-t border-slate-200 italic text-slate-700">
-                              <span className="font-bold not-italic text-blue-800 uppercase text-[7px]">Reporte do Colaborador:</span> {ticket.reporte_enviado}
+                            <div className="mt-2 pt-2 border-t border-slate-200 italic text-slate-700 leading-normal">
+                              <span className="font-bold not-italic text-blue-800 uppercase text-[8px] block mb-1">Reporte do Colaborador:</span> 
+                              "{ticket.reporte_enviado}"
                             </div>
                           )}
                         </div>
                       </td>
-                      <td className="py-2 align-top text-right font-mono font-bold text-blue-800">
+                      <td className="py-4 align-top text-right font-mono font-bold text-blue-800 text-[10px]">
                         #{ticket.id}
                       </td>
                     </tr>
@@ -204,7 +205,7 @@ const ReportPrint = () => {
 
         <div className="mt-12 pt-4 border-t border-slate-200 text-[8px] text-slate-400 flex justify-between italic">
           <span>Relatório gerado via Portal RDA - G4F SOLUÇÕES</span>
-          <span className="font-bold uppercase tracking-widest">Documento Interno</span>
+          <span className="font-bold uppercase tracking-widest text-slate-500">Documento de Validação Interna</span>
         </div>
       </div>
 
