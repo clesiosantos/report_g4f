@@ -16,7 +16,7 @@ if (empty($user) || empty($pass)) {
 }
 
 try {
-    // Consulta baseada no seu teste de sucesso com DANIELA46
+    // Consulta otimizada fornecida pelo usuário
     $sql = "
         SELECT
             u.id, 
@@ -26,10 +26,15 @@ try {
             u.firstname,
             e.email,
             p.chavecolaboradorfield AS chave,
-            fc_manager_users(u.id) AS gerencia
+            fc_manager_users(u.id) AS gerencia,
+            pr.name AS profile_name,
+            en.name AS entidade
         FROM glpi_users u
         LEFT JOIN glpi_useremails e ON (e.users_id = u.id AND e.is_default = 1)
         LEFT JOIN glpi_plugin_fields_useragrupamentos p ON (p.items_id = u.id)
+        LEFT JOIN glpi_profiles pr ON u.profiles_id = pr.id
+        INNER JOIN glpi_profiles_users pu ON pu.users_id = u.id
+        LEFT JOIN glpi_entities en ON en.id = pu.entities_id
         WHERE u.name = ?
         AND u.is_deleted = 0 
         LIMIT 1
@@ -45,19 +50,14 @@ try {
         exit;
     }
 
-    // Lógica de Perfil/Cargo (mantendo flexível para o relatório)
-    $profile = 'Posto de Trabalho';
-    $userNameLower = strtolower($user);
-    if (str_contains($userNameLower, 'lider')) $profile = 'Líder';
-    if (str_contains($userNameLower, 'preposto')) $profile = 'Preposto';
-
     echo json_encode([
         'id' => (int)$userData['id'],
         'name' => trim(($userData['firstname'] ?? '') . ' ' . ($userData['realname'] ?? '')),
         'chave' => $userData['chave'] ?? $userData['name'],
         'email' => $userData['email'] ?? 'N/A',
         'gerencia' => $userData['gerencia'] ?? 'Não informada',
-        'profile' => $profile,
+        'profile' => $userData['profile_name'] ?? 'Posto de Trabalho',
+        'entidade' => $userData['entidade'] ?? 'N/A',
         'session_token' => bin2hex(random_bytes(32))
     ]);
 

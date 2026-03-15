@@ -100,7 +100,9 @@ const ReportPrint = () => {
           <div className="py-0.5 border-b border-slate-100"><span className="font-bold">E-MAIL:</span> {data.user.email}</div>
           <div className="py-0.5 border-b border-slate-100"><span className="font-bold">CHAVE COLABORADOR:</span> {data.user.chave}</div>
           
-          <div className="col-span-2 py-0.5 border-b border-slate-100"><span className="font-bold">GERÊNCIA LOTAÇÃO:</span> {data.user.gerencia}</div>
+          <div className="py-0.5 border-b border-slate-100"><span className="font-bold">ENTIDADE:</span> {data.user.entidade}</div>
+          <div className="py-0.5 border-b border-slate-100"><span className="font-bold">GERÊNCIA LOTAÇÃO:</span> {data.user.gerencia}</div>
+          
           <div className="col-span-2 py-0.5"><span className="font-bold">PERÍODO AVALIADO:</span> {data.period}</div>
         </div>
 

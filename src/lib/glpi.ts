@@ -15,15 +15,14 @@ export interface TicketReport {
   status: string;
 }
 
-export type UserProfile = 'Posto de Trabalho' | 'Lider' | 'Preposto';
-
 export interface GLPIUser {
   id: number;
   name: string;
   chave: string;
   email: string;
   gerencia: string;
-  profile: UserProfile;
+  profile: string;
+  entidade: string;
   session_token: string;
 }
 
