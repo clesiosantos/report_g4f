@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { LogOut, Filter, Loader2, Download, CheckCircle2, XCircle, CalendarClock, MessageSquare, UserCheck, Send, Check, AlertCircle } from "lucide-react";
+import { LogOut, Filter, Loader2, Download, XCircle, CalendarClock, MessageSquare, UserCheck, Send, Check, AlertCircle } from "lucide-react";
 import { glpiService, TicketReport, GLPIUser } from '@/lib/glpi';
 import { showError } from '@/utils/toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -166,19 +166,19 @@ const Dashboard = () => {
                   <TableCell className="py-6">
                     <div className="space-y-8">
                       {items.map((item, idx) => {
-                        const statusUpper = (item.status_aprovacao || "").toUpperCase().trim();
-                        const isApproved = statusUpper === 'APROVADO';
-                        const isRejected = statusUpper.includes('NÃO') || statusUpper.includes('REJEITAD');
+                        const statusRaw = (item.status_aprovacao || "").toUpperCase().trim();
+                        // Se contém "APROVAD" mas não contém "NÃO", então é positivo
+                        const isApproved = statusRaw.includes('APROVAD') && !statusRaw.includes('NÃO');
+                        // Se contém "NÃO" ou "REJEITAD", então é negativo
+                        const isRejected = statusRaw.includes('NÃO') || statusRaw.includes('REJEITAD');
 
                         return (
                           <div key={item.id} className={idx > 0 ? "pt-8 border-t border-slate-100" : ""}>
-                            {/* 1. Cabeçalho do Ticket */}
                             <div className="mb-4">
                               <div className="font-bold text-slate-900 text-base mb-1">{item.titulo}</div>
                               <p className="text-sm text-slate-600 leading-relaxed">{item.descricao}</p>
                             </div>
 
-                            {/* 2. Submissão e Reporte (O que foi escrito) */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                               <div className="bg-blue-50/40 p-4 rounded-xl border border-blue-100 shadow-sm">
                                 <div className="flex items-center gap-2 mb-3">
@@ -203,7 +203,6 @@ const Dashboard = () => {
                                 </div>
                               </div>
 
-                              {/* 3. Fiscalização e Status */}
                               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm">
                                 <div className="flex items-center gap-2 mb-3">
                                   <UserCheck className="w-4 h-4 text-slate-600" />

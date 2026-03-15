@@ -134,9 +134,9 @@ const ReportPrint = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-200">
                   {sortedTickets.map((ticket) => {
-                    const statusUpper = (ticket.status_aprovacao || "").toUpperCase().trim();
-                    const isApproved = statusUpper === 'APROVADO';
-                    const isRejected = statusUpper.includes('NÃO') || statusUpper.includes('REJEITAD');
+                    const statusRaw = (ticket.status_aprovacao || "").toUpperCase().trim();
+                    const isApproved = statusRaw.includes('APROVAD') && !statusRaw.includes('NÃO');
+                    const isRejected = statusRaw.includes('NÃO') || statusRaw.includes('REJEITAD');
 
                     return (
                       <tr key={ticket.id}>
@@ -147,7 +147,6 @@ const ReportPrint = () => {
                           <div className="font-bold text-slate-900 leading-snug mb-1.5 text-[11px]">{ticket.titulo}</div>
                           <div className="text-slate-600 leading-relaxed text-[10px] mb-3">{ticket.descricao}</div>
                           
-                          {/* Box de Fluxo e Reporte no Impresso */}
                           <div className="mt-3 p-3 bg-slate-50 border border-slate-300 rounded-md text-[9px] leading-tight space-y-2">
                             <div className="flex justify-between items-center border-b border-slate-200 pb-1.5 mb-1.5">
                               <div>
