@@ -32,7 +32,6 @@ const ReportPrint = () => {
             const geoData = await response.json();
             const city = geoData.address.city || geoData.address.town || geoData.address.village || "Local";
             const state = geoData.address.state || "";
-            // Formata como "Cidade - Estado"
             setGeoLoc(state ? `${city} - ${state}` : city);
           } catch (e) {
             setGeoLoc(`${latitude.toFixed(2)}, ${longitude.toFixed(2)}`);
@@ -55,46 +54,9 @@ const ReportPrint = () => {
     }
   }, [location, navigate]);
 
-  const fullPeriodDates = useMemo(() => {
-    if (!data?.period) return [];
-    try {
-      const monthsMap: Record<string, number> = {
-        'JANEIRO': 0, 'FEVEREIRO': 1, 'MARÇO': 2, 'MARCO': 2, 'ABRIL': 3, 'MAIO': 4, 'JUNHO': 5,
-        'JULHO': 6, 'AGOSTO': 7, 'SETEMBRO': 8, 'OUTUBRO': 9, 'NOVEMBRO': 10, 'DEZEMBRO': 11
-      };
-      const rawPeriod = data.period.toUpperCase().trim();
-      const parts = rawPeriod.split(/[\s\-/]+/).filter(p => p.length > 0);
-      let monthIndex: number | null = null;
-      let yearValue: number | null = null;
-
-      parts.forEach(part => {
-        if (monthsMap[part] !== undefined) monthIndex = monthsMap[part];
-        else if (!isNaN(parseInt(part)) && part.length === 4) yearValue = parseInt(part);
-      });
-
-      if (monthIndex === null || yearValue === null) return [];
-
-      const endDate = new Date(yearValue, monthIndex, 9);
-      const startDate = new Date(yearValue, monthIndex - 1, 10);
-      const dates = [];
-      let current = new Date(startDate);
-      while (current <= endDate) {
-        dates.push(current.toISOString().split('T')[0]);
-        current.setDate(current.getDate() + 1);
-      }
-      return dates;
-    } catch (e) { return []; }
-  }, [data]);
-
-  const ticketsByDate = useMemo(() => {
-    if (!data?.tickets) return {};
-    const map: Record<string, TicketReport[]> = {};
-    data.tickets.forEach(t => {
-      const date = t.data_criacao.split(' ')[0];
-      if (!map[date]) map[date] = [];
-      map[date].push(t);
-    });
-    return map;
+  const sortedTickets = useMemo(() => {
+    if (!data?.tickets) return [];
+    return [...data.tickets].sort((a, b) => a.data_criacao.localeCompare(b.data_criacao));
   }, [data]);
 
   if (!data) return <div className="p-20 text-center text-slate-400">Preparando documento para impressão...</div>;
@@ -103,7 +65,6 @@ const ReportPrint = () => {
   const approverName = isEmittedByOther ? data.currentUser.name : (data.user.lider || data.user.preposto || "Gestor Responsável");
   const approverRole = isEmittedByOther ? data.currentUser.profile : (data.user.lider ? "Líder" : (data.user.preposto ? "Preposto" : "Gestor"));
 
-  // Carimbo eletrônico em destaque (CAIXA DE VALIDAÇÃO)
   const ElectronicValidationBox = ({ user }: { user: GLPIUser }) => (
     <div className="mt-4 p-2.5 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50/30 text-[7px] text-slate-600 leading-tight text-left max-w-[240px] mx-auto shadow-sm">
       <div className="font-bold text-blue-700 block mb-1.5 text-center text-[8px] uppercase tracking-widest border-b border-blue-200 pb-1">
@@ -136,73 +97,96 @@ const ReportPrint = () => {
       `}} />
       
       <div className="max-w-[210mm] mx-auto">
-        {/* Cabeçalho */}
         <div className="flex justify-between items-center border-b-2 border-slate-800 pb-2 mb-4">
           <div className="space-y-0.5">
             <h1 className="text-md font-bold uppercase tracking-tight">Relatório Diário de Atividade - RDA</h1>
-            <p className="text-[9px] font-semibold text-slate-600">Contrato: 5900.0131965.25.2 - G4F SOLUCOES CORPORATIVAS LTDA</p>
+            <p className="text-[9px] font-semibold text-slate-600">Contrato: XXXXX - G4F SOLUCOES CORPORATIVAS LTDA</p>
           </div>
           <img src="https://raw.githubusercontent.com/clesiosantos/glpihmg4f/main/LOGOAZUL.png" alt="Logo" className="h-8 w-auto" />
         </div>
 
-        {/* Informações do Colaborador */}
-        <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-[9px] border border-slate-300 p-3 rounded mb-4 bg-slate-50/20">
-          <div className="border-b border-slate-100"><span className="font-bold">COLABORADOR:</span> {data.user.name}</div>
-          <div className="border-b border-slate-100"><span className="font-bold">NOME DE USUÁRIO:</span> {data.user.username}</div>
-          <div className="border-b border-slate-100"><span className="font-bold">CHAVE:</span> {data.user.chave}</div>
-          <div className="border-b border-slate-100"><span className="font-bold">GERÊNCIA:</span> {data.user.gerencia}</div>
-          <div className="border-b border-slate-100"><span className="font-bold">CARGO:</span> {data.user.profile}</div>
-          <div className="border-b border-slate-100"><span className="font-bold">E-MAIL:</span> {data.user.email}</div>
-          <div className="border-b border-slate-100"><span className="font-bold">ATIVIDADE:</span> {data.user.entidade}</div>
-          <div className="border-b border-slate-100 font-bold text-blue-800 text-[10px]">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[10px] border border-slate-300 p-4 rounded-md mb-6 bg-slate-50/20">
+          <div className="border-b border-slate-100 pb-1"><span className="font-bold">COLABORADOR:</span> {data.user.name}</div>
+          <div className="border-b border-slate-100 pb-1"><span className="font-bold">NOME DE USUÁRIO:</span> {data.user.username}</div>
+          <div className="border-b border-slate-100 pb-1"><span className="font-bold">CHAVE:</span> {data.user.chave}</div>
+          <div className="border-b border-slate-100 pb-1"><span className="font-bold">GERÊNCIA:</span> {data.user.gerencia}</div>
+          <div className="border-b border-slate-100 pb-1"><span className="font-bold">CARGO:</span> {data.user.profile}</div>
+          <div className="border-b border-slate-100 pb-1"><span className="font-bold">E-MAIL:</span> {data.user.email}</div>
+          <div className="border-b border-slate-100 pb-1"><span className="font-bold">ATIVIDADE:</span> {data.user.entidade}</div>
+          <div className="border-b border-slate-100 pb-1 font-bold text-blue-800 text-[11px]">
             <span className="text-slate-900">PERÍODO:</span> {data.period}
           </div>
         </div>
 
-        {/* Tabela de Atividades */}
-        <table className="w-full text-[8.5px] border-collapse border border-slate-400">
-          <thead>
-            <tr className="bg-slate-100/80">
-              <th className="border border-slate-400 p-1.5 text-left w-24 uppercase font-bold">Data / Dia</th>
-              <th className="border border-slate-400 p-1.5 text-left uppercase font-bold">Atividades Realizadas</th>
-              <th className="border border-slate-400 p-1.5 text-center w-20 uppercase font-bold">Chamados</th>
-            </tr>
-          </thead>
-          <tbody>
-            {fullPeriodDates.map(date => {
-              const items = ticketsByDate[date] || [];
-              const dateObj = new Date(date + 'T12:00:00');
-              const dayOfWeek = dateObj.toLocaleDateString('pt-BR', { weekday: 'long' });
-              return (
-                <tr key={date}>
-                  <td className="border border-slate-400 p-1.5 font-bold align-top capitalize bg-slate-50/30">
-                    {dateObj.toLocaleDateString('pt-BR')}<br/>
-                    <span className="text-[7px] font-normal text-slate-500 italic">{dayOfWeek}</span>
-                  </td>
-                  <td className="border border-slate-400 p-1.5 align-top">
-                    {items.length > 0 ? (
-                      <div className="space-y-1">
-                        {items.map((item, idx) => (
-                          <div key={item.id} className={idx > 0 ? "pt-1 border-t border-slate-100" : ""}>
-                            <div className="font-bold text-slate-800 leading-tight">{item.titulo}</div>
-                            <div className="text-slate-600 leading-tight italic text-[8px]">{item.descricao}</div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-slate-300 font-bold uppercase italic py-1">Sem lançamento</div>
-                    )}
-                  </td>
-                  <td className="border border-slate-400 p-1.5 align-top text-center font-mono font-bold text-blue-700">
-                    {items.length > 0 ? items.map(i => `#${i.id}`).join(', ') : '-'}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className="border border-slate-400 rounded-md overflow-hidden shadow-sm">
+          <div className="bg-slate-100 border-b border-slate-400 p-2.5 text-[11px] font-bold uppercase tracking-widest text-center text-slate-800">
+            Atividades Realizadas no Período
+          </div>
+          <div className="p-5 space-y-4 min-h-[400px]">
+            {sortedTickets.length > 0 ? (
+              <table className="w-full text-[10px] border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-300">
+                    <th className="text-left py-2 w-24 font-bold text-slate-800">Data</th>
+                    <th className="text-left py-2 font-bold text-slate-800">Descrição / Reporte e Aprovação</th>
+                    <th className="text-right py-2 w-28 font-bold text-slate-800">Ticket</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {sortedTickets.map((ticket) => {
+                    const statusRaw = (ticket.status_aprovacao || "").toUpperCase().trim();
+                    const isApproved = statusRaw.includes('APROVAD') && !statusRaw.includes('NÃO');
+                    const isRejected = statusRaw.includes('NÃO') || statusRaw.includes('REJEITAD');
 
-        {/* Seção de Assinaturas */}
+                    return (
+                      <tr key={ticket.id}>
+                        <td className="py-4 align-top font-bold text-slate-700">
+                          {new Date(ticket.data_criacao.split(' ')[0] + 'T12:00:00').toLocaleDateString('pt-BR')}
+                        </td>
+                        <td className="py-4 align-top pr-6">
+                          <div className="font-bold text-slate-900 leading-snug mb-1.5 text-[11px]">{ticket.titulo}</div>
+                          <div className="text-slate-600 leading-relaxed text-[10px] mb-3">{ticket.descricao}</div>
+                          
+                          <div className="mt-3 p-3 bg-slate-50 border border-slate-300 rounded-md text-[9px] leading-tight space-y-2">
+                            <div className="flex justify-between items-center border-b border-slate-200 pb-1.5 mb-1.5">
+                              <div>
+                                <span className="font-bold text-blue-800 uppercase text-[8px]">Submissão:</span> {ticket.data_aprovacao_solicitada ? new Date(ticket.data_aprovacao_solicitada.replace(' ', 'T')).toLocaleString('pt-BR') : '-'}
+                              </div>
+                              <div className="text-right">
+                                <span className="font-bold text-slate-800 uppercase text-[8px]">Status:</span> 
+                                <span className={isApproved ? 'text-green-700 font-extrabold flex items-center gap-1 justify-end' : (isRejected ? 'text-red-700 font-extrabold flex items-center gap-1 justify-end' : 'text-slate-800 font-bold')}>
+                                  {isApproved && '✓ '}
+                                  {isApproved ? 'APROVADO' : (ticket.status_aprovacao || 'PENDENTE')}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="pb-1">
+                              <span className="font-bold text-slate-700 uppercase text-[8px]">Fiscal de Campo:</span> {ticket.fiscal_campo || 'Aguardando atribuição'}
+                            </div>
+                            {ticket.reporte_enviado && (
+                              <div className="mt-2 pt-2 border-t border-slate-200 italic text-slate-700 leading-normal">
+                                <span className="font-bold not-italic text-blue-800 uppercase text-[8px] block mb-1">Reporte do Colaborador:</span> 
+                                "{ticket.reporte_enviado}"
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-4 align-top text-right font-mono font-bold text-blue-800 text-[10px]">
+                          #{ticket.id}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              <div className="flex items-center justify-center h-full text-slate-300 font-bold uppercase italic text-xl">
+                Sem lançamentos no período
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="mt-20 grid grid-cols-2 gap-12 items-start">
           <div className="text-center">
             <div className="min-h-[40px] flex items-end justify-center mb-1">
@@ -228,10 +212,9 @@ const ReportPrint = () => {
           </div>
         </div>
 
-        {/* Rodapé Final */}
         <div className="mt-12 pt-4 border-t border-slate-200 text-[8px] text-slate-400 flex justify-between italic">
           <span>Relatório gerado via Portal RDA - G4F SOLUÇÕES</span>
-          <span className="font-bold uppercase tracking-widest">Documento Interno</span>
+          <span className="font-bold uppercase tracking-widest text-slate-500">Documento de Validação Interna</span>
         </div>
       </div>
 

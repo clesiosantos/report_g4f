@@ -13,8 +13,6 @@ if (empty($period) || empty($userId)) {
     exit;
 }
 
-// Consulta expandida para status 2, 3, 4, 5 e 6
-// Para chamados em aberto (2,3,4), usamos a data de criação (t.date) como fallback para o calendário
 $sql = "
     SELECT 
         t.id,
@@ -24,7 +22,17 @@ $sql = "
         IFNULL(t.solvedate, t.closedate) as data_solucao,
         it.completename as servico,
         fc_users_name(t.users_id_recipient) AS posto_trabalho, 
+        
+        -- Fiscalização
+        fc_get_name_last_approval_status(t.id, ?) AS fiscal_campo,
+        fc_get_last_approval_status(t.id, ?) AS status_aprovacao,
+        
+        IFNULL(fc_groups_ticket(t.id, 2), fc_manager_users(t.users_id_recipient)) AS gerencia_origem,
+        fc_leader_prepost(t.users_id_recipient, 2) AS preposto,
+        
         c.periodo as periodo_avaliado,
+        f.date_creation as data_aprovacao_solicitada,
+        f.content as reporte_enviado,
         CASE t.status 
             WHEN 2 THEN 'Atribuído'
             WHEN 3 THEN 'Planejado'
@@ -35,7 +43,20 @@ $sql = "
         END as status
     FROM glpi_tickets t
     LEFT JOIN glpi_itilcategories it ON it.id = t.itilcategories_id
-    INNER JOIN calendario c ON (DATE(COALESCE(t.solvedate, t.closedate, t.date)) = c.data)
+    
+    -- Buscamos o último acompanhamento para extrair o reporte
+    LEFT JOIN (
+        SELECT f1.items_id, f1.date_creation, f1.content
+        FROM glpi_itilfollowups f1
+        WHERE f1.id = (
+            SELECT MAX(f2.id) 
+            FROM glpi_itilfollowups f2 
+            WHERE f2.itemtype = 'Ticket' AND f2.items_id = f1.items_id
+        )
+    ) f ON f.items_id = t.id
+    
+    INNER JOIN calendario c ON (DATE(COALESCE(f.date_creation, t.solvedate, t.closedate, t.date)) = c.data)
+    
     WHERE c.periodo = ?
     AND t.users_id_recipient = ?
     AND t.status IN (2, 3, 4, 5, 6)
@@ -46,18 +67,26 @@ $sql = "
 
 try {
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([$period, $userId]);
+    $stmt->execute([$period, $period, $period, $userId]);
     $results = $stmt->fetchAll();
     
     foreach ($results as &$row) {
+        // Limpeza da descrição original do ticket
         $cleanDesc = html_entity_decode($row['descricao'] ?? '');
         $cleanDesc = strip_tags($cleanDesc);
         $row['descricao'] = trim(preg_replace('/\s+/', ' ', $cleanDesc));
+
+        // Limpeza do reporte enviado (follow-up)
+        $cleanReporte = html_entity_decode($row['reporte_enviado'] ?? '');
+        $cleanReporte = strip_tags($cleanReporte);
+        $row['reporte_enviado'] = trim(preg_replace('/\s+/', ' ', $cleanReporte));
     }
     
     echo json_encode($results);
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['error' => $e->getMessage()]);
+    echo json_encode([
+        'error' => 'Erro SQL: ' . $e->getMessage()
+    ]);
 }
 ?>

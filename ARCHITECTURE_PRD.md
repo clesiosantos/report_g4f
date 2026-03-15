@@ -1,13 +1,13 @@
-# PRD & Documentação de Arquitetura - Portal RDA (Fisco)
+# PRD & Documentação de Arquitetura - Portal RDA (REDUC)
 
-## 1. Visão Geral (Contexto Petrobras - Fisco)
+## 1. Visão Geral (Contexto Petrobras - REDUC)
 O sistema é uma camada de visualização e auditoria para o GLPI 10. Ele extrai atividades (Tickets) de colaboradores e gera um documento PDF (RDA) com validade jurídica interna através de um carimbo de validação eletrônica.
 
 ## 2. Requisitos Funcionais (Core)
 - **Autenticação**: Integrada com a tabela `glpi_users`. Validação via `password_verify` (BCRYPT).
 - **Dashboard de Produtividade**:
   - Filtro por Período (baseado na tabela customizada `calendario`).
-  - Visão de Gestor (Líder/Preposto): Permite selecionar subordinados.
+  - Visão de Gestor (Líder/Preposto): Permite selecionar subordinados via busca inteligente.
 - **Relatório RDA (Impressão)**:
   - Agrupamento de tickets por data.
   - Exibição de Título e Conteúdo (limpo de HTML).
@@ -31,7 +31,7 @@ O sistema é uma camada de visualização e auditoria para o GLPI 10. Ele extrai
   - `subordinates.php`: Lógica de hierarquia via funções `fc_leader_prepost`.
 
 ## 4. Estrutura de Dados & SQL Crítico
-O projeto depende de funções específicas no banco de dados `glpi_fisco`:
+O projeto depende de funções específicas no banco de dados:
 1. `fc_leader_prepost(users_id, tipo)`: Retorna o nome do gestor vinculado ao usuário.
 2. `fc_manager_users(users_id)`: Retorna a gerência do usuário.
 3. `calendario`: Tabela que define os intervalos de 10 a 09 de cada mês para fechamento do RDA.
@@ -42,14 +42,11 @@ O sistema utiliza o estado do navegador para garantir a integridade da assinatur
 - **Geo**: API `navigator.geolocation` + Reverse Geocoding (Nominatim/OSM) para obter Cidade-UF.
 - **Audit**: O documento exibe explicitamente que a validação foi feita via senha individual.
 
-## 6. Guia para Replicação (Projeto Reduc)
-Para adaptar para a **Reduc**:
-1. Alterar o `db.php` para apontar para o novo host/database.
-2. Atualizar as URLs das imagens (Logos) nos componentes `Login`, `Dashboard` e `ReportPrint`.
-3. Validar se as funções `fc_leader_prepost` existem no novo banco ou se a lógica de hierarquia será diferente.
-4. Alterar o `vite.config.ts` se o `base` path for diferente de `/report/`.
+## 6. Guia para Configuração de Ambiente
+O nome da unidade exibido no portal pode ser configurado via variável de ambiente:
+- **VITE_PROJECT_UNIT**: Define o nome da unidade (Ex: REDUC, Fisco, etc). Valor padrão: `REDUC`.
 
 ---
 **Autor**: Dyad AI Editor
 **Data**: 2024
-**Versão**: 1.0.0 (Fisco Original)
+**Versão**: 1.1.0 (REDUC Edition)
