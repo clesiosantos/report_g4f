@@ -133,45 +133,51 @@ const ReportPrint = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {sortedTickets.map((ticket) => (
-                    <tr key={ticket.id}>
-                      <td className="py-4 align-top font-bold text-slate-700">
-                        {new Date(ticket.data_criacao.split(' ')[0] + 'T12:00:00').toLocaleDateString('pt-BR')}
-                      </td>
-                      <td className="py-4 align-top pr-6">
-                        <div className="font-bold text-slate-900 leading-snug mb-1.5 text-[11px]">{ticket.titulo}</div>
-                        <div className="text-slate-600 leading-relaxed text-[10px] mb-3">{ticket.descricao}</div>
-                        
-                        {/* Box de Fluxo e Reporte no Impresso */}
-                        <div className="mt-3 p-3 bg-slate-50 border border-slate-300 rounded-md text-[9px] leading-tight space-y-2">
-                          <div className="flex justify-between items-center border-b border-slate-200 pb-1.5 mb-1.5">
-                            <div>
-                              <span className="font-bold text-blue-800 uppercase text-[8px]">Submissão:</span> {ticket.data_aprovacao_solicitada ? new Date(ticket.data_aprovacao_solicitada.replace(' ', 'T')).toLocaleString('pt-BR') : '-'}
+                  {sortedTickets.map((ticket) => {
+                    const statusUpper = (ticket.status_aprovacao || "").toUpperCase().trim();
+                    const isApproved = statusUpper === 'APROVADO';
+                    const isRejected = statusUpper.includes('NÃO') || statusUpper.includes('REJEITAD');
+
+                    return (
+                      <tr key={ticket.id}>
+                        <td className="py-4 align-top font-bold text-slate-700">
+                          {new Date(ticket.data_criacao.split(' ')[0] + 'T12:00:00').toLocaleDateString('pt-BR')}
+                        </td>
+                        <td className="py-4 align-top pr-6">
+                          <div className="font-bold text-slate-900 leading-snug mb-1.5 text-[11px]">{ticket.titulo}</div>
+                          <div className="text-slate-600 leading-relaxed text-[10px] mb-3">{ticket.descricao}</div>
+                          
+                          {/* Box de Fluxo e Reporte no Impresso */}
+                          <div className="mt-3 p-3 bg-slate-50 border border-slate-300 rounded-md text-[9px] leading-tight space-y-2">
+                            <div className="flex justify-between items-center border-b border-slate-200 pb-1.5 mb-1.5">
+                              <div>
+                                <span className="font-bold text-blue-800 uppercase text-[8px]">Submissão:</span> {ticket.data_aprovacao_solicitada ? new Date(ticket.data_aprovacao_solicitada.replace(' ', 'T')).toLocaleString('pt-BR') : '-'}
+                              </div>
+                              <div className="text-right">
+                                <span className="font-bold text-slate-800 uppercase text-[8px]">Status:</span> 
+                                <span className={isApproved ? 'text-green-700 font-extrabold flex items-center gap-1 justify-end' : (isRejected ? 'text-red-700 font-extrabold flex items-center gap-1 justify-end' : 'text-slate-800 font-bold')}>
+                                  {isApproved && '✓ '}
+                                  {isApproved ? 'APROVADO' : (ticket.status_aprovacao || 'PENDENTE')}
+                                </span>
+                              </div>
                             </div>
-                            <div className="text-right">
-                              <span className="font-bold text-slate-800 uppercase text-[8px]">Status:</span> 
-                              <span className={ticket.status_aprovacao?.toUpperCase().includes('APROVAD') ? 'text-green-700 font-extrabold flex items-center gap-1 justify-end' : 'text-slate-800 font-bold'}>
-                                {ticket.status_aprovacao?.toUpperCase().includes('APROVAD') && '✓ '}
-                                {ticket.status_aprovacao?.toUpperCase().includes('APROVAD') ? 'APROVADA' : (ticket.status_aprovacao || 'PENDENTE')}
-                              </span>
+                            <div className="pb-1">
+                              <span className="font-bold text-slate-700 uppercase text-[8px]">Fiscal de Campo:</span> {ticket.fiscal_campo || 'Aguardando atribuição'}
                             </div>
+                            {ticket.reporte_enviado && (
+                              <div className="mt-2 pt-2 border-t border-slate-200 italic text-slate-700 leading-normal">
+                                <span className="font-bold not-italic text-blue-800 uppercase text-[8px] block mb-1">Reporte do Colaborador:</span> 
+                                "{ticket.reporte_enviado}"
+                              </div>
+                            )}
                           </div>
-                          <div className="pb-1">
-                            <span className="font-bold text-slate-700 uppercase text-[8px]">Fiscal de Campo:</span> {ticket.fiscal_campo || 'Aguardando atribuição'}
-                          </div>
-                          {ticket.reporte_enviado && (
-                            <div className="mt-2 pt-2 border-t border-slate-200 italic text-slate-700 leading-normal">
-                              <span className="font-bold not-italic text-blue-800 uppercase text-[8px] block mb-1">Reporte do Colaborador:</span> 
-                              "{ticket.reporte_enviado}"
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-4 align-top text-right font-mono font-bold text-blue-800 text-[10px]">
-                        #{ticket.id}
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="py-4 align-top text-right font-mono font-bold text-blue-800 text-[10px]">
+                          #{ticket.id}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             ) : (

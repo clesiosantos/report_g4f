@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { LogOut, Filter, Loader2, Download, CheckCircle2, XCircle, CalendarClock, MessageSquare, UserCheck, Send, Check } from "lucide-react";
+import { LogOut, Filter, Loader2, Download, CheckCircle2, XCircle, CalendarClock, MessageSquare, UserCheck, Send, Check, AlertCircle } from "lucide-react";
 import { glpiService, TicketReport, GLPIUser } from '@/lib/glpi';
 import { showError } from '@/utils/toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -165,79 +165,90 @@ const Dashboard = () => {
                   </TableCell>
                   <TableCell className="py-6">
                     <div className="space-y-8">
-                      {items.map((item, idx) => (
-                        <div key={item.id} className={idx > 0 ? "pt-8 border-t border-slate-100" : ""}>
-                          {/* 1. Cabeçalho do Ticket */}
-                          <div className="mb-4">
-                            <div className="font-bold text-slate-900 text-base mb-1">{item.titulo}</div>
-                            <p className="text-sm text-slate-600 leading-relaxed">{item.descricao}</p>
-                          </div>
+                      {items.map((item, idx) => {
+                        const statusUpper = (item.status_aprovacao || "").toUpperCase().trim();
+                        const isApproved = statusUpper === 'APROVADO';
+                        const isRejected = statusUpper.includes('NÃO') || statusUpper.includes('REJEITAD');
 
-                          {/* 2. Submissão e Reporte (O que foi escrito) */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                            <div className="bg-blue-50/40 p-4 rounded-xl border border-blue-100 shadow-sm">
-                              <div className="flex items-center gap-2 mb-3">
-                                <Send className="w-4 h-4 text-blue-600" />
-                                <span className="text-xs font-bold text-blue-800 uppercase tracking-widest">Submissão / Reporte</span>
-                              </div>
-                              <div className="space-y-2.5">
-                                <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
-                                  <CalendarClock className="w-3.5 h-3.5 text-slate-400" />
-                                  <span className="font-bold uppercase">Data:</span> {formatDate(item.data_aprovacao_solicitada)}
-                                </div>
-                                {item.reporte_enviado && (
-                                  <div className="mt-3 pt-3 border-t border-blue-100/60">
-                                    <div className="flex items-start gap-2">
-                                      <MessageSquare className="w-4 h-4 text-blue-400 mt-1 flex-shrink-0" />
-                                      <p className="text-[13px] text-slate-700 italic leading-relaxed font-medium">
-                                        "{item.reporte_enviado}"
-                                      </p>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
+                        return (
+                          <div key={item.id} className={idx > 0 ? "pt-8 border-t border-slate-100" : ""}>
+                            {/* 1. Cabeçalho do Ticket */}
+                            <div className="mb-4">
+                              <div className="font-bold text-slate-900 text-base mb-1">{item.titulo}</div>
+                              <p className="text-sm text-slate-600 leading-relaxed">{item.descricao}</p>
                             </div>
 
-                            {/* 3. Fiscalização e Status */}
-                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm">
-                              <div className="flex items-center gap-2 mb-3">
-                                <UserCheck className="w-4 h-4 text-slate-600" />
-                                <span className="text-xs font-bold text-slate-800 uppercase tracking-widest">Fiscalização</span>
-                              </div>
-                              <div className="space-y-3">
-                                <div className="text-[11px] text-slate-600">
-                                  <span className="font-bold uppercase">Enviado para:</span> <span className="text-slate-800 font-bold">{item.fiscal_campo || 'Aguardando Atribuição'}</span>
+                            {/* 2. Submissão e Reporte (O que foi escrito) */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                              <div className="bg-blue-50/40 p-4 rounded-xl border border-blue-100 shadow-sm">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <Send className="w-4 h-4 text-blue-600" />
+                                  <span className="text-xs font-bold text-blue-800 uppercase tracking-widest">Submissão / Reporte</span>
                                 </div>
-                                <div className="pt-2">
-                                  {item.status_aprovacao ? (
-                                    <div className={`inline-flex items-center gap-2 text-xs font-bold uppercase px-4 py-2 rounded-full border shadow-md transition-all ${
-                                      item.status_aprovacao.toUpperCase().includes('APROVAD') 
-                                      ? 'bg-green-600 text-white border-green-700' 
-                                      : 'bg-amber-100 text-amber-700 border-amber-200'
-                                    }`}>
-                                      {item.status_aprovacao.toUpperCase().includes('APROVAD') ? (
-                                        <>
-                                          <Check className="w-4 h-4 stroke-[3px]" />
-                                          <span>APROVADA</span>
-                                        </>
-                                      ) : (
-                                        <>
-                                          <XCircle className="w-4 h-4" />
-                                          <span>{item.status_aprovacao}</span>
-                                        </>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <div className="inline-flex items-center gap-2 text-xs font-bold uppercase px-3.5 py-1.5 rounded-full bg-slate-200 text-slate-600 border border-slate-300">
-                                      Pendente
+                                <div className="space-y-2.5">
+                                  <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
+                                    <CalendarClock className="w-3.5 h-3.5 text-slate-400" />
+                                    <span className="font-bold uppercase">Data:</span> {formatDate(item.data_aprovacao_solicitada)}
+                                  </div>
+                                  {item.reporte_enviado && (
+                                    <div className="mt-3 pt-3 border-t border-blue-100/60">
+                                      <div className="flex items-start gap-2">
+                                        <MessageSquare className="w-4 h-4 text-blue-400 mt-1 flex-shrink-0" />
+                                        <p className="text-[13px] text-slate-700 italic leading-relaxed font-medium">
+                                          "{item.reporte_enviado}"
+                                        </p>
+                                      </div>
                                     </div>
                                   )}
                                 </div>
                               </div>
+
+                              {/* 3. Fiscalização e Status */}
+                              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-sm">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <UserCheck className="w-4 h-4 text-slate-600" />
+                                  <span className="text-xs font-bold text-slate-800 uppercase tracking-widest">Fiscalização</span>
+                                </div>
+                                <div className="space-y-3">
+                                  <div className="text-[11px] text-slate-600">
+                                    <span className="font-bold uppercase">Enviado para:</span> <span className="text-slate-800 font-bold">{item.fiscal_campo || 'Aguardando Atribuição'}</span>
+                                  </div>
+                                  <div className="pt-2">
+                                    {item.status_aprovacao ? (
+                                      <div className={`inline-flex items-center gap-2 text-xs font-bold uppercase px-4 py-2 rounded-full border shadow-md transition-all ${
+                                        isApproved 
+                                        ? 'bg-green-600 text-white border-green-700' 
+                                        : (isRejected ? 'bg-red-600 text-white border-red-700' : 'bg-amber-100 text-amber-700 border-amber-200')
+                                      }`}>
+                                        {isApproved ? (
+                                          <>
+                                            <Check className="w-4 h-4 stroke-[3px]" />
+                                            <span>APROVADO</span>
+                                          </>
+                                        ) : isRejected ? (
+                                          <>
+                                            <AlertCircle className="w-4 h-4" />
+                                            <span>{item.status_aprovacao}</span>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <XCircle className="w-4 h-4" />
+                                            <span>{item.status_aprovacao}</span>
+                                          </>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <div className="inline-flex items-center gap-2 text-xs font-bold uppercase px-3.5 py-1.5 rounded-full bg-slate-200 text-slate-600 border border-slate-300">
+                                        Pendente
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </TableCell>
                   <TableCell className="text-center font-mono font-bold text-blue-700 text-sm align-top pt-6">
