@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { LogOut, Filter, Loader2, Download, CheckCircle2, XCircle, CalendarClock, MessageSquare, UserCheck, Send } from "lucide-react";
+import { LogOut, Filter, Loader2, Download, CheckCircle2, XCircle, CalendarClock, MessageSquare, UserCheck, Send, Check } from "lucide-react";
 import { glpiService, TicketReport, GLPIUser } from '@/lib/glpi';
 import { showError } from '@/utils/toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -205,18 +205,27 @@ const Dashboard = () => {
                                 <span className="text-xs font-bold text-slate-800 uppercase tracking-widest">Fiscalização</span>
                               </div>
                               <div className="space-y-3">
-                                <div className="text-[11px] text-slate-500">
-                                  <span className="font-bold uppercase">Enviado para:</span> <span className="text-slate-700 font-semibold">{item.fiscal_campo || 'Aguardando Atribuição'}</span>
+                                <div className="text-[11px] text-slate-600">
+                                  <span className="font-bold uppercase">Enviado para:</span> <span className="text-slate-800 font-bold">{item.fiscal_campo || 'Aguardando Atribuição'}</span>
                                 </div>
                                 <div className="pt-2">
                                   {item.status_aprovacao ? (
-                                    <div className={`inline-flex items-center gap-2 text-xs font-bold uppercase px-3.5 py-1.5 rounded-full border shadow-sm ${
-                                      item.status_aprovacao.includes('APROVADO') 
-                                      ? 'bg-green-100 text-green-700 border-green-200' 
+                                    <div className={`inline-flex items-center gap-2 text-xs font-bold uppercase px-4 py-2 rounded-full border shadow-md transition-all ${
+                                      item.status_aprovacao.toUpperCase().includes('APROVAD') 
+                                      ? 'bg-green-600 text-white border-green-700' 
                                       : 'bg-amber-100 text-amber-700 border-amber-200'
                                     }`}>
-                                      {item.status_aprovacao.includes('APROVADO') ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                                      {item.status_aprovacao}
+                                      {item.status_aprovacao.toUpperCase().includes('APROVAD') ? (
+                                        <>
+                                          <Check className="w-4 h-4 stroke-[3px]" />
+                                          <span>APROVADA</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <XCircle className="w-4 h-4" />
+                                          <span>{item.status_aprovacao}</span>
+                                        </>
+                                      )}
                                     </div>
                                   ) : (
                                     <div className="inline-flex items-center gap-2 text-xs font-bold uppercase px-3.5 py-1.5 rounded-full bg-slate-200 text-slate-600 border border-slate-300">

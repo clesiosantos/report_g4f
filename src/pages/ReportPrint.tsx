@@ -149,7 +149,11 @@ const ReportPrint = () => {
                               <span className="font-bold text-blue-800 uppercase text-[8px]">Submissão:</span> {ticket.data_aprovacao_solicitada ? new Date(ticket.data_aprovacao_solicitada.replace(' ', 'T')).toLocaleString('pt-BR') : '-'}
                             </div>
                             <div className="text-right">
-                              <span className="font-bold text-slate-800 uppercase text-[8px]">Status:</span> {ticket.status_aprovacao || 'Pendente'}
+                              <span className="font-bold text-slate-800 uppercase text-[8px]">Status:</span> 
+                              <span className={ticket.status_aprovacao?.toUpperCase().includes('APROVAD') ? 'text-green-700 font-extrabold flex items-center gap-1 justify-end' : 'text-slate-800 font-bold'}>
+                                {ticket.status_aprovacao?.toUpperCase().includes('APROVAD') && '✓ '}
+                                {ticket.status_aprovacao?.toUpperCase().includes('APROVAD') ? 'APROVADA' : (ticket.status_aprovacao || 'PENDENTE')}
+                              </span>
                             </div>
                           </div>
                           <div className="pb-1">
