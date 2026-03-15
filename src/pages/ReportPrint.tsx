@@ -19,16 +19,12 @@ const ReportPrint = () => {
   useEffect(() => {
     const state = location.state as any;
     addLog("Iniciando componente ReportPrint");
-    addLog(`State recebido: ${state ? "Sim" : "Não"}`);
 
     if (state && state.user && state.period) {
-      addLog(`Usuário: ${state.user.name}`);
-      addLog(`Período: ${state.period}`);
-      addLog(`Quantidade de tickets: ${state.tickets?.length || 0}`);
+      addLog(`Período recebido: ${state.period}`);
       setData(state);
       
       const timer = setTimeout(() => {
-        addLog("Chamando window.print()");
         try {
           window.print();
         } catch (e) {
@@ -38,55 +34,51 @@ const ReportPrint = () => {
       return () => clearTimeout(timer);
     } else {
       const storedUser = localStorage.getItem('glpi_user');
-      addLog(`Usuário no localStorage: ${storedUser ? "Sim" : "Não"}`);
       if (!storedUser) {
-        addLog("Redirecionando para login por falta de credenciais");
         navigate('/');
       } else {
-        setError("As informações de navegação foram perdidas (provavelmente por um refresh). Por favor, gere o relatório novamente no Dashboard.");
+        setError("Dados não encontrados. Por favor, gere o relatório novamente no Dashboard.");
       }
     }
   }, [location, navigate]);
 
   const fullPeriodDates = useMemo(() => {
-    if (!data?.period) {
-      addLog("Cálculo de datas ignorado: falta dado de período");
-      return [];
-    }
+    if (!data?.period) return [];
     
     try {
-      const months: Record<string, number> = {
+      const monthsMap: Record<string, number> = {
         'JANEIRO': 0, 'FEVEREIRO': 1, 'MARÇO': 2, 'MARCO': 2, 'ABRIL': 3, 'MAIO': 4, 'JUNHO': 5,
         'JULHO': 6, 'AGOSTO': 7, 'SETEMBRO': 8, 'OUTUBRO': 9, 'NOVEMBRO': 10, 'DEZEMBRO': 11
       };
 
       const rawPeriod = data.period.toUpperCase().trim();
-      addLog(`Processando período string: "${rawPeriod}"`);
-      
-      const parts = rawPeriod.replace('/', ' ').split(/\s+/);
+      // Remove hífens, barras e espaços extras para isolar as palavras
+      const parts = rawPeriod.split(/[\s\-/]+/).filter(p => p.length > 0);
       addLog(`Partes identificadas: ${JSON.stringify(parts)}`);
 
-      if (parts.length < 2) {
-        throw new Error(`Formato de período inválido. Esperado "MÊS ANO" ou "MÊS/ANO", recebido: "${rawPeriod}"`);
+      let monthIndex: number | null = null;
+      let yearValue: number | null = null;
+
+      // Busca inteligente: identifica qual parte é o mês e qual é o ano
+      parts.forEach(part => {
+        if (monthsMap[part] !== undefined) {
+          monthIndex = monthsMap[part];
+        } else if (!isNaN(parseInt(part)) && part.length === 4) {
+          yearValue = parseInt(part);
+        }
+      });
+
+      if (monthIndex === null || yearValue === null) {
+        throw new Error(`Não foi possível identificar o mês ou o ano no texto: "${rawPeriod}"`);
       }
 
-      const monthName = parts[0];
-      const year = parseInt(parts[1]);
-      const endMonth = months[monthName];
-
-      if (endMonth === undefined) {
-        throw new Error(`Mês "${monthName}" não reconhecido no mapeamento.`);
-      }
-
-      if (isNaN(year)) {
-        throw new Error(`Ano "${parts[1]}" não é um número válido.`);
-      }
+      addLog(`Identificado: Mês Index ${monthIndex}, Ano ${yearValue}`);
 
       // Regra: de 10 do mês anterior a 09 do mês atual
-      const endDate = new Date(year, endMonth, 9);
-      const startDate = new Date(year, endMonth - 1, 10);
+      const endDate = new Date(yearValue, monthIndex, 9);
+      const startDate = new Date(yearValue, monthIndex - 1, 10);
       
-      addLog(`Datas calculadas: Início=${startDate.toISOString().split('T')[0]}, Fim=${endDate.toISOString().split('T')[0]}`);
+      addLog(`Intervalo: ${startDate.toISOString().split('T')[0]} até ${endDate.toISOString().split('T')[0]}`);
 
       const dates = [];
       let current = new Date(startDate);
@@ -97,11 +89,10 @@ const ReportPrint = () => {
         safety++;
       }
       
-      addLog(`Total de dias no período: ${dates.length}`);
       return dates;
     } catch (e: any) {
-      addLog(`ERRO NO PARSING: ${e.message}`);
-      setError(`Erro técnico ao processar período: ${e.message}`);
+      addLog(`ERRO: ${e.message}`);
+      setError(`Erro ao processar período: ${e.message}`);
       return [];
     }
   }, [data]);
@@ -121,20 +112,16 @@ const ReportPrint = () => {
   if (error) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50">
-        <div className="bg-white p-8 rounded-lg shadow-xl max-w-2xl w-full border-t-4 border-red-500">
-          <h2 className="text-xl font-bold text-slate-800 mb-4">Falha ao Gerar Relatório</h2>
-          <div className="bg-red-50 text-red-700 p-4 rounded mb-6 text-sm font-mono whitespace-pre-wrap">
-            {error}
-          </div>
+        <div className="bg-white p-8 rounded-lg shadow-xl max-w-2xl w-full border-t-4 border-red-500 text-center">
+          <h2 className="text-xl font-bold text-slate-800 mb-4">Falha na Geração do Calendário</h2>
+          <p className="bg-red-50 text-red-700 p-4 rounded mb-6 text-sm">{error}</p>
           <div className="text-left mb-6">
-            <h3 className="text-xs font-bold text-slate-400 uppercase mb-2">Logs de Depuração:</h3>
-            <div className="bg-slate-900 text-slate-300 p-3 rounded text-[10px] h-40 overflow-y-auto font-mono">
+            <h3 className="text-[10px] font-bold text-slate-400 uppercase mb-2">Histórico de Processamento:</h3>
+            <div className="bg-slate-900 text-slate-300 p-3 rounded text-[10px] h-32 overflow-y-auto font-mono">
               {debugLog.map((log, i) => <div key={i}>{log}</div>)}
             </div>
           </div>
-          <button onClick={() => navigate('/dashboard')} className="w-full bg-blue-600 text-white py-3 rounded-md font-bold hover:bg-blue-700 transition-colors">
-            Voltar ao Dashboard
-          </button>
+          <button onClick={() => navigate('/dashboard')} className="bg-blue-600 text-white px-8 py-2 rounded font-bold">Voltar</button>
         </div>
       </div>
     );
@@ -142,22 +129,9 @@ const ReportPrint = () => {
 
   if (!data || fullPeriodDates.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          <div className="text-center">
-            <p className="text-slate-700 font-bold">Preparando seu RDA...</p>
-            <p className="text-xs text-slate-400 mt-1">Isso pode levar alguns segundos conforme o volume de dados.</p>
-          </div>
-        </div>
-        <div className="mt-10 max-w-sm w-full px-4">
-          <div className="bg-slate-900/5 p-4 rounded-lg">
-            <p className="text-[10px] text-slate-500 uppercase font-bold mb-2">Status do Processamento:</p>
-            <div className="text-[9px] font-mono text-slate-600 space-y-1">
-              {debugLog.slice(-3).map((log, i) => <div key={i} className="truncate">{log}</div>)}
-            </div>
-          </div>
-        </div>
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p className="text-slate-600 font-bold">Processando dados do RDA...</p>
       </div>
     );
   }
@@ -247,7 +221,7 @@ const ReportPrint = () => {
       </div>
 
       <div className="no-print mt-8 flex justify-center gap-4 pb-10">
-        <button onClick={() => window.print()} className="bg-blue-600 text-white px-6 py-2 rounded-full font-bold">Imprimir RDA</button>
+        <button onClick={() => window.print()} className="bg-blue-600 text-white px-6 py-2 rounded-full font-bold shadow-lg">Imprimir RDA</button>
         <button onClick={() => navigate('/dashboard')} className="bg-slate-200 text-slate-800 px-6 py-2 rounded-full font-bold">Voltar</button>
       </div>
     </div>
