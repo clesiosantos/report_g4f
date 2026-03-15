@@ -23,3 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 .dyad/
+
+# Segurança: Ignorar variáveis de ambiente com dados sensíveis
+.env
+.env.production
+.env.local

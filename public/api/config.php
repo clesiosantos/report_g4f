@@ -1,9 +1,11 @@
 <?php
 // Configurações da API REST do GLPI
-define('GLPI_API_URL', 'https://fisco.g4f.sharksolucoes.com.br/apirest.php/');
-define('GLPI_APP_TOKEN', 'OsSl5jvHymW58g6blPXVGzVEMgrczOmCQ777ZjLE');
+define('GLPI_API_URL', getenv('GLPI_API_URL') ?: 'https://fisco.g4f.sharksolucoes.com.br/apirest.php/');
+define('GLPI_APP_TOKEN', getenv('GLPI_APP_TOKEN') ?: 'OsSl5jvHymW58g6blPXVGzVEMgrczOmCQ777ZjLE');
 
-// Função auxiliar para chamadas de API (se necessário no futuro)
+/**
+ * Função auxiliar para chamadas de API
+ */
 function callGLPI($endpoint, $method = 'GET', $headers = [], $data = null) {
     $url = GLPI_API_URL . $endpoint;
     $ch = curl_init($url);

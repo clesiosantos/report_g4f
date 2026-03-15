@@ -32,6 +32,7 @@ export interface GLPIUser {
 
 export const glpiService = {
   async login(user: string, pass: string): Promise<GLPIUser> {
+    // Usamos caminhos relativos ao diretório atual para evitar problemas com subpastas
     const response = await fetch('api/login.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -1,9 +1,13 @@
 <?php
-// Configurações do Banco de Dados GLPI - AMBIENTE REDUC
-$host = 'db.reduc.local'; // Alterar para o host da Reduc
-$db   = 'glpi_reduc';      // Alterar para o banco da Reduc
-$user = 'glpi_reduc';      // Usuário do banco Reduc
-$pass = 'SENHA_REDUC';     // Senha do banco Reduc
+/**
+ * Configurações do Banco de Dados GLPI
+ */
+
+// Usamos as credenciais fornecidas por você como fallback direto
+$host = getenv('DB_HOST') ?: 'db.petro.local';
+$db   = getenv('DB_NAME') ?: 'glpi_fisco';
+$user = getenv('DB_USER') ?: 'glpi_fisco';
+$pass = getenv('DB_PASS') ?: 'GLPiDB@2024.';
 $charset = 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
@@ -17,7 +21,7 @@ try {
      $pdo = new PDO($dsn, $user, $pass, $options);
 } catch (\PDOException $e) {
      header('Content-Type: application/json', true, 500);
-     echo json_encode(['error' => 'Falha na conexão com o banco REDUC: ' . $e->getMessage()]);
+     echo json_encode(['error' => 'Falha na conexão com o banco de dados (Verifique se o db.petro.local é acessível): ' . $e->getMessage()]);
      exit;
 }
 ?>

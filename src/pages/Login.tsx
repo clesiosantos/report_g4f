@@ -20,6 +20,9 @@ const Login = () => {
   const location = useLocation();
 
   useEffect(() => {
+    // Resetar título na tela de login
+    document.title = "Acesso - Relatório da Solução Tecnologia - G4F";
+    
     if (user) {
       const from = (location.state as any)?.from?.pathname || "/dashboard";
       navigate(from, { replace: true });
@@ -34,7 +37,7 @@ const Login = () => {
       login(userData);
       showSuccess(`Bem-vindo, ${userData.name}!`);
     } catch (err) {
-      showError("Falha na autenticação (Reduc).");
+      showError("Falha na autenticação (Fisco).");
     } finally {
       setLoading(false);
     }
@@ -42,19 +45,18 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <Card className="w-full max-w-md shadow-xl border-t-4 border-t-green-600">
+      <Card className="w-full max-w-md shadow-xl border-t-4 border-t-blue-600">
         <CardHeader className="space-y-4 flex flex-col items-center pb-8">
           <div className="w-48 h-20 flex items-center justify-center overflow-hidden">
-            {/* Logo da Petrobras Reduc */}
             <img 
-              src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Petrobras_logo.svg/1280px-Petrobras_logo.svg.png" 
-              alt="Logo Reduc" 
+              src="https://raw.githubusercontent.com/clesiosantos/glpihmg4f/main/LOGOAZUL.png" 
+              alt="Logo G4F" 
               className="max-w-full max-h-full object-contain"
             />
           </div>
           <div className="text-center space-y-1">
-            <CardTitle className="text-2xl font-bold text-slate-800">Portal RDA - Reduc</CardTitle>
-            <CardDescription>Acesse com suas credenciais do GLPI Reduc</CardDescription>
+            <CardTitle className="text-2xl font-bold text-slate-800">Portal RDA - Fisco</CardTitle>
+            <CardDescription>Acesse com suas credenciais do GLPI</CardDescription>
           </div>
         </CardHeader>
         <form onSubmit={handleLogin}>
@@ -67,7 +69,7 @@ const Login = () => {
                 value={userStr}
                 onChange={(e) => setUserStr(e.target.value)}
                 required 
-                className="focus-visible:ring-green-600"
+                className="focus-visible:ring-blue-600"
               />
             </div>
             <div className="space-y-2">
@@ -78,15 +80,15 @@ const Login = () => {
                 value={pass}
                 onChange={(e) => setPass(e.target.value)}
                 required 
-                className="focus-visible:ring-green-600"
+                className="focus-visible:ring-blue-600"
               />
             </div>
           </CardContent>
           <CardFooter className="pt-4">
-            <Button className="w-full bg-green-700 hover:bg-green-800 transition-colors" type="submit" disabled={loading}>
+            <Button className="w-full bg-blue-700 hover:bg-blue-800 transition-colors" type="submit" disabled={loading}>
               {loading ? "Autenticando..." : (
                 <>
-                  <LogIn className="mr-2 h-4 w-4" /> Acessar Reduc
+                  <LogIn className="mr-2 h-4 w-4" /> Acessar Sistema
                 </>
               )}
             </Button>

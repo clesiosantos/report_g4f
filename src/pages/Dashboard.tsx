@@ -30,6 +30,13 @@ const Dashboard = () => {
     return profile.includes('LIDER') || profile.includes('PREPOSTO');
   }, [user]);
 
+  // Atualiza o título da página dinamicamente
+  useEffect(() => {
+    if (user) {
+      document.title = `Relatório da Solução Tecnologia - G4F - Colaborador: ${user.name}`;
+    }
+  }, [user]);
+
   useEffect(() => {
     const init = async () => {
       if (!user) return;
@@ -52,7 +59,7 @@ const Dashboard = () => {
           if (defaultPeriod) loadData(defaultPeriod, user.id);
         }
       } catch (err) {
-        showError("Erro na inicialização do painel Reduc.");
+        showError("Erro na inicialização do painel Fisco.");
       } finally {
         setLoadingPeriods(false);
       }
@@ -111,13 +118,13 @@ const Dashboard = () => {
     <div className="min-h-screen bg-slate-50">
       <header className="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-10 shadow-sm">
         <div className="flex items-center gap-3">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Petrobras_logo.svg/1280px-Petrobras_logo.svg.png" alt="Logo Reduc" className="h-8 w-auto" />
-          <h1 className="text-xl font-bold text-slate-800 hidden sm:block">Portal RDA - Reduc</h1>
+          <img src="https://raw.githubusercontent.com/clesiosantos/glpihmg4f/main/LOGOAZUL.png" alt="Logo G4F" className="h-8 w-auto" />
+          <h1 className="text-xl font-bold text-slate-800 hidden sm:block">Portal RDA - Fisco</h1>
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right hidden md:block">
             <p className="text-sm font-bold text-slate-900">{user.name}</p>
-            <p className="text-xs text-green-600 font-medium">{user.profile}</p>
+            <p className="text-xs text-blue-600 font-medium">{user.profile}</p>
           </div>
           <Button variant="ghost" size="icon" onClick={logout} className="hover:text-red-600">
             <LogOut className="w-5 h-5" />
@@ -126,11 +133,10 @@ const Dashboard = () => {
       </header>
 
       <main className="p-6 max-w-7xl mx-auto space-y-6">
-        {/* Filtros e Conteúdo idênticos, mas com acentos de cor verde para Reduc */}
         <Card className="bg-white border-none shadow-md">
           <CardHeader className="pb-3 border-b mb-4">
             <CardTitle className="text-lg flex items-center gap-2 text-slate-700">
-              <Filter className="w-4 h-4 text-green-600" /> Parâmetros Reduc
+              <Filter className="w-4 h-4 text-blue-600" /> Parâmetros Fisco
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -153,7 +159,7 @@ const Dashboard = () => {
                     <Users className="w-4 h-4" /> Colaborador
                   </Label>
                   <Select value={selectedColaborador?.id.toString()} onValueChange={handleColaboradorChange}>
-                    <SelectTrigger className="w-full bg-slate-50 border-green-100">
+                    <SelectTrigger className="w-full bg-slate-50 border-blue-100">
                       <SelectValue placeholder="Selecione o colaborador" />
                     </SelectTrigger>
                     <SelectContent>
@@ -167,7 +173,7 @@ const Dashboard = () => {
               )}
 
               <div className="flex gap-2 w-full md:w-auto">
-                <Button className="flex-1 md:w-40 bg-green-700 hover:bg-green-800" onClick={() => loadData(selectedPeriod, selectedColaborador?.id || user.id)} disabled={loading}>
+                <Button className="flex-1 md:w-40 bg-blue-700 hover:bg-blue-800" onClick={() => loadData(selectedPeriod, selectedColaborador?.id || user.id)} disabled={loading}>
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4 mr-2" />} Atualizar
                 </Button>
                 <Button variant="outline" className="flex gap-2" onClick={handleExportPDF} disabled={!selectedPeriod || loading}>
@@ -177,20 +183,20 @@ const Dashboard = () => {
             </div>
           </CardContent>
         </Card>
-        {/* ... Resto da tabela segue o mesmo padrão ... */}
+
         <Card className="border-none shadow-lg overflow-hidden bg-white">
           <CardContent className="p-0">
             <Table>
               <TableHeader className="bg-slate-50">
                 <TableRow>
                   <TableHead className="w-[120px] font-bold">Data</TableHead>
-                  <TableHead className="font-bold">Atividades Lançadas (Reduc)</TableHead>
+                  <TableHead className="font-bold">Atividades Lançadas (Fisco)</TableHead>
                   <TableHead className="w-[120px] font-bold text-center">Chamados</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={3} className="h-64 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-green-600" /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={3} className="h-64 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-600" /></TableCell></TableRow>
                 ) : groupedData.length === 0 ? (
                   <TableRow><TableCell colSpan={3} className="h-32 text-center text-slate-400">Nenhum chamado no período selecionado.</TableCell></TableRow>
                 ) : groupedData.map(([date, items]) => (
@@ -204,7 +210,7 @@ const Dashboard = () => {
                           <div key={item.id} className={idx > 0 ? "pt-2 border-t border-slate-100" : ""}>
                             <div className="font-bold text-sm text-slate-800 flex justify-between">
                               {item.titulo}
-                              <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-green-100 text-green-700 font-normal">
+                              <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-normal">
                                 {item.status}
                               </span>
                             </div>
@@ -216,7 +222,7 @@ const Dashboard = () => {
                     <TableCell className="py-4 text-center">
                       <div className="flex flex-wrap justify-center gap-1">
                         {items.map(item => (
-                          <span key={item.id} className="text-[10px] font-mono font-bold px-1 py-0.5 bg-green-50 text-green-700 rounded border border-green-100">#{item.id}</span>
+                          <span key={item.id} className="text-[10px] font-mono font-bold px-1 py-0.5 bg-blue-50 text-blue-700 rounded border border-blue-100">#{item.id}</span>
                         ))}
                       </div>
                     </TableCell>
