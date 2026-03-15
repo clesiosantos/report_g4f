@@ -26,12 +26,23 @@ const ReportPrint = () => {
     else if (ua.indexOf("Safari") > -1) browser = "Apple Safari";
     setBrowserInfo(browser);
 
-    // Tentar obter localização (opcional e assíncrono)
+    // Tentar obter localização e converter para nome
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => setGeoLoc(`${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`),
+        async (pos) => {
+          const { latitude, longitude } = pos.coords;
+          try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10&addressdetails=1`);
+            const geoData = await response.json();
+            const city = geoData.address.city || geoData.address.town || geoData.address.village || "Cidade não identificada";
+            const state = geoData.address.state || "";
+            setGeoLoc(`${city}${state ? ' - ' + state : ''} (${latitude.toFixed(2)}, ${longitude.toFixed(2)})`);
+          } catch (e) {
+            setGeoLoc(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+          }
+        },
         () => setGeoLoc('Acesso à localização negado'),
-        { timeout: 5000 }
+        { timeout: 8000 }
       );
     }
 
@@ -40,7 +51,7 @@ const ReportPrint = () => {
       setData(state);
       const timer = setTimeout(() => {
         try { window.print(); } catch (e) {}
-      }, 2500);
+      }, 3000); // Aumentado para dar tempo de carregar a localização
       return () => clearTimeout(timer);
     } else {
       const storedUser = localStorage.getItem('glpi_user');
@@ -190,7 +201,7 @@ const ReportPrint = () => {
               <div className="mt-2 p-1.5 border border-dashed border-slate-300 rounded bg-slate-50 text-[6px] text-slate-500 leading-tight text-left">
                 <span className="font-bold text-blue-700 block mb-0.5 text-center text-[7px]">VALIDAÇÃO ELETRÔNICA</span>
                 • Data/Hora: <span className="font-bold text-slate-700">{signatureDate}</span><br/>
-                • IP: <span className="font-bold text-slate-700">{data.user.ip}</span><br/>
+                • IP: <span className="font-bold text-slate-700">{data.user.ip || 'Localhost'}</span><br/>
                 • Navegador: <span className="font-bold text-slate-700">{browserInfo}</span><br/>
                 • Local: <span className="font-bold text-slate-700">{geoLoc}</span>
               </div>

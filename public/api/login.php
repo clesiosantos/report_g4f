@@ -56,8 +56,16 @@ try {
         return (isset($val) && trim($val) !== '') ? $val : $default;
     };
 
-    // Captura o IP do cliente
-    $clientIp = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+    // Captura de IP robusta
+    $clientIp = '0.0.0.0';
+    if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
+        $clientIp = $_SERVER['HTTP_CLIENT_IP'];
+    } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        $ips = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+        $clientIp = trim($ips[0]);
+    } elseif (!empty($_SERVER['REMOTE_ADDR'])) {
+        $clientIp = $_SERVER['REMOTE_ADDR'];
+    }
 
     echo json_encode([
         'id' => (int)$userData['id'],
