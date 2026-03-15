@@ -25,7 +25,9 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   const isManager = useMemo(() => {
-    return user?.profile.includes('Lider') || user?.profile.includes('Preposto');
+    if (!user?.profile) return false;
+    const profile = user.profile.toUpperCase();
+    return profile.includes('LIDER') || profile.includes('PREPOSTO');
   }, [user]);
 
   useEffect(() => {
@@ -33,18 +35,16 @@ const Dashboard = () => {
       if (!user) return;
       setLoadingPeriods(true);
       try {
-        // Carrega períodos
         const availablePeriods = await glpiService.getPeriods();
         setPeriods(availablePeriods);
         const defaultPeriod = availablePeriods[0] || "";
         setSelectedPeriod(defaultPeriod);
 
-        // Se for gestor, busca subordinados
         if (isManager) {
-          const role = user.profile.includes('Preposto') ? 'Preposto' : 'Lider';
+          const profile = user.profile.toUpperCase();
+          const role = profile.includes('PREPOSTO') ? 'Preposto' : 'Lider';
           const subs = await glpiService.getSubordinates(user.id, role);
           setSubordinates(subs);
-          // Por padrão, seleciona o próprio gestor ou o primeiro da lista
           setSelectedColaborador(user);
           if (defaultPeriod) loadData(defaultPeriod, user.id);
         } else {
@@ -95,7 +95,6 @@ const Dashboard = () => {
 
   const handleExportPDF = () => {
     if (!selectedPeriod || !selectedColaborador) return;
-    // Passamos os dados do colaborador selecionado para o print, não do gestor logado
     navigate('/print', { state: { tickets, user: selectedColaborador, period: selectedPeriod } });
   };
 

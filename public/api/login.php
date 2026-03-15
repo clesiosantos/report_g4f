@@ -6,7 +6,7 @@ header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Content-Type: application/json');
 
 $input = json_decode(file_get_contents('php://input'), true);
-$user = $input['user'] ?? '';
+$user = trim($input['user'] ?? '');
 $pass = $input['pass'] ?? '';
 
 if (empty($user) || empty($pass)) {
@@ -46,9 +46,15 @@ try {
     $stmt->execute([$user]);
     $userData = $stmt->fetch();
 
-    if (!$userData || !password_verify($pass, $userData['password'])) {
+    if (!$userData) {
         http_response_code(401);
-        echo json_encode(['error' => 'Usuário ou senha inválidos']);
+        echo json_encode(['error' => 'Usuário não encontrado ou inativo']);
+        exit;
+    }
+
+    if (!password_verify($pass, $userData['password'])) {
+        http_response_code(401);
+        echo json_encode(['error' => 'Senha incorreta']);
         exit;
     }
 
@@ -56,7 +62,6 @@ try {
         return (isset($val) && trim($val) !== '') ? $val : $default;
     };
 
-    // Captura de IP robusta
     $clientIp = '0.0.0.0';
     if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
         $clientIp = $_SERVER['HTTP_CLIENT_IP'];
@@ -83,6 +88,6 @@ try {
 
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['error' => 'Erro interno: ' . $e->getMessage()]);
+    echo json_encode(['error' => 'Erro interno no servidor: ' . $e->getMessage()]);
 }
 ?>
