@@ -101,7 +101,6 @@ const ReportPrint = () => {
   const approverName = isEmittedByOther ? data.currentUser.name : (data.user.lider || data.user.preposto || "Gestor Responsável");
   const approverRole = isEmittedByOther ? data.currentUser.profile : (data.user.lider ? "Líder" : (data.user.preposto ? "Preposto" : "Gestor"));
 
-  // Carimbo eletrônico em linha única e compacta
   const ElectronicValidationLine = ({ user }: { user: GLPIUser }) => (
     <div className="mt-1 text-[6px] text-slate-400 italic leading-none">
       <span className="font-bold text-blue-600">VALIDAÇÃO ELETRÔNICA:</span> {signatureDate} | IP: {user.ip || '0.0.0.0'} | {browserInfo} | {geoLoc}
@@ -122,7 +121,6 @@ const ReportPrint = () => {
       `}} />
       
       <div className="max-w-[210mm] mx-auto">
-        {/* Cabeçalho */}
         <div className="flex justify-between items-center border-b-2 border-slate-800 pb-2 mb-4">
           <div className="space-y-0.5">
             <h1 className="text-md font-bold uppercase tracking-tight">Relatório Diário de Atividade - RDA</h1>
@@ -131,20 +129,19 @@ const ReportPrint = () => {
           <img src="https://raw.githubusercontent.com/clesiosantos/glpihmg4f/main/LOGOAZUL.png" alt="Logo" className="h-8 w-auto" />
         </div>
 
-        {/* Informações do Colaborador */}
         <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-[9px] border border-slate-300 p-3 rounded mb-4 bg-slate-50/20">
           <div className="border-b border-slate-100"><span className="font-bold">COLABORADOR:</span> {data.user.name}</div>
+          <div className="border-b border-slate-100"><span className="font-bold">NOME DE USUÁRIO:</span> {data.user.username}</div>
           <div className="border-b border-slate-100"><span className="font-bold">CHAVE:</span> {data.user.chave}</div>
-          <div className="border-b border-slate-100"><span className="font-bold">CARGO:</span> {data.user.profile}</div>
           <div className="border-b border-slate-100"><span className="font-bold">GERÊNCIA:</span> {data.user.gerencia}</div>
-          <div className="border-b border-slate-100"><span className="font-bold">ATIVIDADE:</span> {data.user.entidade}</div>
+          <div className="border-b border-slate-100"><span className="font-bold">CARGO:</span> {data.user.profile}</div>
           <div className="border-b border-slate-100"><span className="font-bold">E-MAIL:</span> {data.user.email}</div>
-          <div className="col-span-2 pt-1 font-bold text-blue-800 text-[10px]">
-            <span className="text-slate-900">PERÍODO AVALIADO:</span> {data.period}
+          <div className="border-b border-slate-100"><span className="font-bold">ATIVIDADE:</span> {data.user.entidade}</div>
+          <div className="border-b border-slate-100 font-bold text-blue-800 text-[10px]">
+            <span className="text-slate-900">PERÍODO:</span> {data.period}
           </div>
         </div>
 
-        {/* Tabela de Atividades */}
         <table className="w-full text-[8.5px] border-collapse border border-slate-400">
           <thead>
             <tr className="bg-slate-100/80">
@@ -187,9 +184,7 @@ const ReportPrint = () => {
           </tbody>
         </table>
 
-        {/* Seção de Assinaturas Compacta */}
         <div className="mt-10 grid grid-cols-2 gap-12 items-start">
-          {/* Lado do Colaborador */}
           <div className="flex flex-col">
             <div className="min-h-[30px] flex items-end justify-center mb-0.5">
               <div className="signature-font text-xl text-blue-900/80">{data.user.name}</div>
@@ -201,7 +196,6 @@ const ReportPrint = () => {
             </div>
           </div>
 
-          {/* Lado do Gestor */}
           <div className="flex flex-col">
             <div className="min-h-[30px] flex items-end justify-center mb-0.5">
               {isEmittedByOther && <div className="signature-font text-xl text-blue-900/80">{data.currentUser.name}</div>}
@@ -215,27 +209,15 @@ const ReportPrint = () => {
           </div>
         </div>
 
-        {/* Rodapé */}
         <div className="mt-8 pt-2 border-t border-slate-200 text-[7px] text-slate-400 flex justify-between italic">
           <span>Relatório gerado via Portal RDA - G4F SOLUÇÕES</span>
           <span className="font-bold uppercase">Documento Interno</span>
         </div>
       </div>
 
-      {/* Botões */}
       <div className="no-print fixed bottom-6 left-0 right-0 flex justify-center gap-4 z-50">
-        <button 
-          onClick={() => window.print()} 
-          className="bg-blue-600 text-white px-6 py-2 rounded-full font-bold shadow-lg hover:bg-blue-700 transition-all text-sm flex items-center gap-2"
-        >
-          Imprimir RDA
-        </button>
-        <button 
-          onClick={() => navigate('/dashboard')} 
-          className="bg-white border border-slate-300 text-slate-700 px-6 py-2 rounded-full font-bold shadow-md hover:bg-slate-50 transition-all text-sm"
-        >
-          Voltar
-        </button>
+        <button onClick={() => window.print()} className="bg-blue-600 text-white px-6 py-2 rounded-full font-bold shadow-lg hover:bg-blue-700 transition-all text-sm flex items-center gap-2">Imprimir RDA</button>
+        <button onClick={() => navigate('/dashboard')} className="bg-white border border-slate-300 text-slate-700 px-6 py-2 rounded-full font-bold shadow-md hover:bg-slate-50 transition-all text-sm">Voltar</button>
       </div>
     </div>
   );

@@ -16,11 +16,10 @@ if (empty($user) || empty($pass)) {
 }
 
 try {
-    // Consulta simplificada para evitar falhas se as funções customizadas não existirem
     $sql = "
         SELECT
             u.id, 
-            u.name, 
+            u.name as login_user, 
             u.password, 
             u.realname, 
             u.firstname,
@@ -56,7 +55,6 @@ try {
         exit;
     }
 
-    // Tenta buscar gerencia e lider separadamente para não quebrar o login se a função falhar
     $gerencia = 'Não informada';
     $lider = '';
     $preposto = '';
@@ -70,9 +68,7 @@ try {
             $lider = $mgData['lider'] ?? '';
             $preposto = $mgData['preposto'] ?? '';
         }
-    } catch (Exception $e) {
-        // Ignora erro se as funções não existirem
-    }
+    } catch (Exception $e) {}
 
     $getVal = function($val, $default) {
         return (isset($val) && trim($val) !== '') ? $val : $default;
@@ -81,7 +77,8 @@ try {
     echo json_encode([
         'id' => (int)$userData['id'],
         'name' => trim(($userData['firstname'] ?? '') . ' ' . ($userData['realname'] ?? '')),
-        'chave' => $getVal($userData['chave'], $userData['name']),
+        'username' => $userData['login_user'],
+        'chave' => $getVal($userData['chave'], $userData['login_user']),
         'email' => $getVal($userData['email'], 'N/A'),
         'gerencia' => $getVal($gerencia, 'Não informada'),
         'profile' => $getVal($userData['profile_name'], 'Posto de Trabalho'),

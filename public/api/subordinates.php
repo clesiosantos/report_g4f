@@ -14,7 +14,6 @@ if (empty($managerId) || empty($role)) {
 try {
     $roleType = (stripos($role, 'PREPOSTO') !== false) ? 2 : 1;
 
-    // Busca o nome do gestor primeiro
     $stmtUser = $pdo->prepare("SELECT CONCAT(IFNULL(firstname, ''), ' ', IFNULL(realname, '')) as fullname FROM glpi_users WHERE id = ?");
     $stmtUser->execute([$managerId]);
     $managerName = $stmtUser->fetchColumn();
@@ -24,11 +23,11 @@ try {
         exit;
     }
 
-    // Consulta ajustada para incluir a gerência via fc_manager_users
     $sql = "
         SELECT 
             u.id, 
             CONCAT(IFNULL(u.firstname, ''), ' ', IFNULL(u.realname, '')) as name,
+            u.name as username,
             MAX(p.chavecolaboradorfield) AS chave,
             MAX(pr.name) AS profile,
             MAX(e.email) AS email,
@@ -44,7 +43,7 @@ try {
         LEFT JOIN glpi_entities en ON (en.id = pu.entities_id)
         WHERE fc_leader_prepost(u.id, ?) = ?
         AND u.is_deleted = 0
-        GROUP BY u.id, name, gerencia, lider, preposto
+        GROUP BY u.id, name, username, gerencia, lider, preposto
         ORDER BY u.firstname ASC
     ";
 

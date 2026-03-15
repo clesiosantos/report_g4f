@@ -17,8 +17,9 @@ export interface TicketReport {
 
 export interface GLPIUser {
   id: number;
-  name: string;
-  chave: string;
+  name: string;      // Nome Completo
+  username: string;  // Login (u.name)
+  chave: string;     // Chave do Colaborador
   email: string;
   gerencia: string;
   profile: string;
