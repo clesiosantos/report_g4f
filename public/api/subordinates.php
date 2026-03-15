@@ -24,14 +24,15 @@ try {
         exit;
     }
 
+    // Consulta ajustada para compatibilidade com only_full_group_by
     $sql = "
         SELECT 
             u.id, 
             CONCAT(IFNULL(u.firstname, ''), ' ', IFNULL(u.realname, '')) as name,
-            p.chavecolaboradorfield AS chave,
-            pr.name AS profile,
-            e.email,
-            en.name AS entidade
+            MAX(p.chavecolaboradorfield) AS chave,
+            MAX(pr.name) AS profile,
+            MAX(e.email) AS email,
+            MAX(en.name) AS entidade
         FROM glpi_users u
         LEFT JOIN glpi_useremails e ON (e.users_id = u.id AND e.is_default = 1)
         LEFT JOIN glpi_plugin_fields_useragrupamentos p ON (p.items_id = u.id)
@@ -40,7 +41,7 @@ try {
         LEFT JOIN glpi_entities en ON (en.id = pu.entities_id)
         WHERE fc_leader_prepost(u.id, ?) = ?
         AND u.is_deleted = 0
-        GROUP BY u.id
+        GROUP BY u.id, name
         ORDER BY u.firstname ASC
     ";
 
