@@ -20,6 +20,8 @@ export type UserProfile = 'Posto de Trabalho' | 'Lider' | 'Preposto';
 export interface GLPIUser {
   id: number;
   name: string;
+  chave: string;
+  email: string;
   profile: UserProfile;
   session_token: string;
 }

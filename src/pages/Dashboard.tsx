@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { FileText, Download, LogOut, Filter, User, CalendarDays, Loader2, CalendarRange, ChevronRight } from "lucide-react";
+import { FileText, Download, LogOut, Filter, User, CalendarDays, Loader2, CalendarRange } from "lucide-react";
 import { glpiService, TicketReport, GLPIUser } from '@/lib/glpi';
 import { showError } from '@/utils/toast';
 
@@ -65,7 +65,11 @@ const Dashboard = () => {
     }
   };
 
-  // Agrupamento de tickets por data para exibição
+  const handleExportPDF = () => {
+    if (!tickets.length || !user) return;
+    navigate('/print', { state: { tickets, user, period: selectedPeriod } });
+  };
+
   const groupedData = useMemo(() => {
     const groups: Record<string, TicketReport[]> = {};
     tickets.forEach(ticket => {
@@ -76,7 +80,6 @@ const Dashboard = () => {
     return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
   }, [tickets]);
 
-  // Contagem distinta de dias baseada na data de abertura (date_criacao)
   const totalDays = groupedData.length;
 
   const handleLogout = () => {
@@ -145,7 +148,12 @@ const Dashboard = () => {
                   {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileText className="w-4 h-4 mr-2" />}
                   Atualizar Dados
                 </Button>
-                <Button variant="outline" className="flex gap-2 border-slate-200 hover:bg-slate-50">
+                <Button 
+                  variant="outline" 
+                  className="flex gap-2 border-slate-200 hover:bg-slate-50"
+                  onClick={handleExportPDF}
+                  disabled={!tickets.length || loading}
+                >
                   <Download className="w-4 h-4" /> Exportar PDF
                 </Button>
               </div>

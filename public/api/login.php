@@ -14,15 +14,23 @@ if (empty($user) || empty($pass)) {
 }
 
 try {
-    // Busca o usuário e o hash da senha no banco do GLPI
-    $stmt = $pdo->prepare("SELECT id, name, password, realname, firstname FROM glpi_users WHERE name = ? AND is_deleted = 0 LIMIT 1");
+    // Busca o usuário, o hash da senha e o e-mail padrão
+    $stmt = $pdo->prepare("
+        SELECT 
+            u.id, 
+            u.name as chave, 
+            u.password, 
+            u.realname, 
+            u.firstname,
+            (SELECT email FROM glpi_useremails WHERE users_id = u.id AND is_default = 1 LIMIT 1) as email
+        FROM glpi_users u 
+        WHERE u.name = ? AND u.is_deleted = 0 
+        LIMIT 1
+    ");
     $stmt->execute([$user]);
     $userData = $stmt->fetch();
 
-    // Verifica se o usuário existe e se a senha bate com o hash do GLPI
     if ($userData && password_verify($pass, $userData['password'])) {
-        
-        // Lógica de Perfil simplificada
         $profile = 'Posto de Trabalho';
         if (str_contains(strtolower($user), 'lider')) $profile = 'Lider';
         if (str_contains(strtolower($user), 'preposto')) $profile = 'Preposto';
@@ -30,6 +38,8 @@ try {
         echo json_encode([
             'id' => $userData['id'],
             'name' => trim(($userData['firstname'] ?? '') . ' ' . ($userData['realname'] ?? '')),
+            'chave' => $userData['chave'],
+            'email' => $userData['email'] ?? 'N/A',
             'profile' => $profile,
             'session_token' => bin2hex(random_bytes(32))
         ]);
