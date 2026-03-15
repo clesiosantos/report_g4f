@@ -16,10 +16,28 @@ if (empty($user) || empty($pass)) {
 }
 
 try {
-    $sqlUser = "SELECT id, name, password, realname, firstname FROM glpi_users WHERE name = ? AND is_deleted = 0 LIMIT 1";
-    $stmtUser = $pdo->prepare($sqlUser);
-    $stmtUser->execute([$user]);
-    $userData = $stmtUser->fetch();
+    // Consulta consolidada para buscar dados básicos, e-mail e campos do plugin
+    $sql = "
+        SELECT 
+            u.id, 
+            u.name, 
+            u.password, 
+            u.realname, 
+            u.firstname,
+            e.email,
+            p.chavecolaboradorfield AS chave,
+            p.gerenciadeorigemfield AS gerencia
+        FROM glpi_users u
+        LEFT JOIN glpi_useremails e ON (e.users_id = u.id AND e.is_default = 1)
+        LEFT JOIN glpi_plugin_fields_useragrupamentos p ON (p.items_id = u.id)
+        WHERE u.name = ? 
+        AND u.is_deleted = 0 
+        LIMIT 1
+    ";
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$user]);
+    $userData = $stmt->fetch();
 
     if (!$userData || !password_verify($pass, $userData['password'])) {
         http_response_code(401);
@@ -27,32 +45,7 @@ try {
         exit;
     }
 
-    $email = 'N/A';
-    $sqlEmail = "SELECT email FROM glpi_useremails WHERE users_id = ? AND is_default = 1 LIMIT 1";
-    $stmtEmail = $pdo->prepare($sqlEmail);
-    $stmtEmail->execute([$userData['id']]);
-    $emailData = $stmtEmail->fetch();
-    if ($emailData) $email = $emailData['email'];
-
-    // Valores padrão
-    $chave = $userData['name']; 
-    $gerencia = 'Não informada';
-    
-    // Busca na tabela de campos adicionais (Plugin Fields)
-    try {
-        $sqlPlugin = "SELECT chavecolaboradorfield, gerenciadeorigemfield FROM glpi_plugin_fields_useragrupamentos WHERE items_id = ? LIMIT 1";
-        $stmtPlugin = $pdo->prepare($sqlPlugin);
-        $stmtPlugin->execute([$userData['id']]);
-        $pluginData = $stmtPlugin->fetch();
-        if ($pluginData) {
-            if (!empty($pluginData['chavecolaboradorfield'])) $chave = $pluginData['chavecolaboradorfield'];
-            if (!empty($pluginData['gerenciadeorigemfield'])) $gerencia = $pluginData['gerenciadeorigemfield'];
-        }
-    } catch (Exception $e) {
-        // Silencioso se a tabela não existir
-    }
-
-    // Determinação do Perfil/Cargo simplificada para o portal
+    // Lógica de Perfil/Cargo (baseada no nome de usuário conforme solicitado anteriormente)
     $profile = 'Posto de Trabalho';
     $userNameLower = strtolower($user);
     if (str_contains($userNameLower, 'lider')) $profile = 'Líder';
@@ -61,15 +54,15 @@ try {
     echo json_encode([
         'id' => (int)$userData['id'],
         'name' => trim(($userData['firstname'] ?? '') . ' ' . ($userData['realname'] ?? '')),
-        'chave' => $chave,
-        'email' => $email,
-        'gerencia' => $gerencia,
+        'chave' => $userData['chave'] ?? $userData['name'],
+        'email' => $userData['email'] ?? 'N/A',
+        'gerencia' => $userData['gerencia'] ?? 'Não informada',
         'profile' => $profile,
         'session_token' => bin2hex(random_bytes(32))
     ]);
 
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['error' => 'Erro interno: ' . $e->getMessage()]);
+    echo json_encode(['error' => 'Erro interno ao consultar perfil: ' . $e->getMessage()]);
 }
 ?>
