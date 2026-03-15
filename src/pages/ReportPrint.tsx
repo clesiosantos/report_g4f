@@ -95,23 +95,26 @@ const ReportPrint = () => {
     return map;
   }, [data]);
 
-  if (!data) return <div className="p-20 text-center">Carregando...</div>;
+  if (!data) return <div className="p-20 text-center text-slate-400">Preparando documento para impressão...</div>;
 
   const isEmittedByOther = data.currentUser && data.currentUser.id !== data.user.id;
   const approverName = isEmittedByOther ? data.currentUser.name : (data.user.lider || data.user.preposto || "Gestor Responsável");
   const approverRole = isEmittedByOther ? data.currentUser.profile : (data.user.lider ? "Líder" : (data.user.preposto ? "Preposto" : "Gestor"));
 
-  // Carimbo eletrônico em destaque (formato caixa)
-  const ElectronicValidation = ({ user }: { user: GLPIUser }) => (
-    <div className="mt-3 p-2 border border-dashed border-blue-200 rounded-md bg-slate-50 text-[7px] text-slate-500 leading-tight text-left max-w-[220px] mx-auto">
-      <span className="font-bold text-blue-700 block mb-1 text-center text-[7px] uppercase tracking-wider border-b border-blue-100 pb-0.5">
+  // Carimbo eletrônico em destaque (A CAIXA QUE FOI SOLICITADA)
+  const ElectronicValidationBox = ({ user }: { user: GLPIUser }) => (
+    <div className="mt-4 p-2.5 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50/30 text-[7px] text-slate-600 leading-tight text-left max-w-[240px] mx-auto shadow-sm">
+      <div className="font-bold text-blue-700 block mb-1.5 text-center text-[8px] uppercase tracking-widest border-b border-blue-200 pb-1">
         VALIDAÇÃO ELETRÔNICA G4F
-      </span>
-      <div className="grid grid-cols-1 gap-0.5">
-        <div><span className="font-bold">DATA/HORA:</span> {signatureDate}</div>
-        <div><span className="font-bold">IP ORIGEM:</span> {user.ip || '0.0.0.0'}</div>
-        <div><span className="font-bold">NAVEGADOR:</span> {browserInfo}</div>
-        <div className="truncate"><span className="font-bold">LOCALIZAÇÃO:</span> {geoLoc}</div>
+      </div>
+      <div className="space-y-0.5">
+        <div><span className="font-bold text-slate-800">DATA/HORA:</span> {signatureDate}</div>
+        <div><span className="font-bold text-slate-800">IP DE ORIGEM:</span> {user.ip || '0.0.0.0'}</div>
+        <div><span className="font-bold text-slate-800">NAVEGADOR:</span> {browserInfo}</div>
+        <div className="truncate"><span className="font-bold text-slate-800">LOCALIZAÇÃO:</span> {geoLoc}</div>
+        <div className="mt-1 pt-1 border-t border-blue-100 text-[6px] text-blue-500 font-bold text-center italic">
+          Autenticidade garantida pelo sistema Portal RDA
+        </div>
       </div>
     </div>
   );
@@ -130,6 +133,7 @@ const ReportPrint = () => {
       `}} />
       
       <div className="max-w-[210mm] mx-auto">
+        {/* Cabeçalho */}
         <div className="flex justify-between items-center border-b-2 border-slate-800 pb-2 mb-4">
           <div className="space-y-0.5">
             <h1 className="text-md font-bold uppercase tracking-tight">Relatório Diário de Atividade - RDA</h1>
@@ -138,6 +142,7 @@ const ReportPrint = () => {
           <img src="https://raw.githubusercontent.com/clesiosantos/glpihmg4f/main/LOGOAZUL.png" alt="Logo" className="h-8 w-auto" />
         </div>
 
+        {/* Informações do Colaborador */}
         <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-[9px] border border-slate-300 p-3 rounded mb-4 bg-slate-50/20">
           <div className="border-b border-slate-100"><span className="font-bold">COLABORADOR:</span> {data.user.name}</div>
           <div className="border-b border-slate-100"><span className="font-bold">NOME DE USUÁRIO:</span> {data.user.username}</div>
@@ -151,6 +156,7 @@ const ReportPrint = () => {
           </div>
         </div>
 
+        {/* Tabela de Atividades */}
         <table className="w-full text-[8.5px] border-collapse border border-slate-400">
           <thead>
             <tr className="bg-slate-100/80">
@@ -193,43 +199,55 @@ const ReportPrint = () => {
           </tbody>
         </table>
 
-        {/* Seção de Assinaturas com Destaque */}
-        <div className="mt-16 grid grid-cols-2 gap-12 items-start">
-          <div className="flex flex-col h-full">
+        {/* Seção de Assinaturas com a CAIXA Restaurada */}
+        <div className="mt-20 grid grid-cols-2 gap-12 items-start">
+          {/* Lado do Colaborador */}
+          <div className="text-center">
             <div className="min-h-[40px] flex items-end justify-center mb-1">
               <div className="signature-font text-2xl text-blue-900/80">{data.user.name}</div>
             </div>
-            <div className="border-t border-slate-800 pt-2 text-center">
+            <div className="border-t border-slate-800 pt-2">
               <p className="text-[10px] font-bold uppercase tracking-wider">Assinatura do Colaborador</p>
-              <p className="text-[8px] text-slate-500 mt-1">{data.user.name}</p>
-              {!isEmittedByOther && <ElectronicValidation user={data.user} />}
-              {isEmittedByOther && <div className="h-[60px]"></div>}
+              <p className="text-[8px] text-slate-500 mt-0.5">{data.user.name}</p>
+              {!isEmittedByOther && <ElectronicValidationBox user={data.user} />}
             </div>
           </div>
 
-          <div className="flex flex-col h-full">
+          {/* Lado da Gerência/Preposto */}
+          <div className="text-center">
             <div className="min-h-[40px] flex items-end justify-center mb-1">
               {isEmittedByOther && <div className="signature-font text-2xl text-blue-900/80">{data.currentUser.name}</div>}
             </div>
-            <div className="border-t border-slate-800 pt-2 text-center">
+            <div className="border-t border-slate-800 pt-2">
               <p className="text-[10px] font-bold uppercase tracking-wider">Aprovação / Validação</p>
-              <p className="text-[9px] text-slate-700 mt-1 font-bold">{approverName}</p>
+              <p className="text-[9px] text-slate-700 mt-0.5 font-bold">{approverName}</p>
               <p className="text-[8px] text-slate-500 uppercase italic">{approverRole}</p>
-              {isEmittedByOther && <ElectronicValidation user={data.currentUser} />}
-              {!isEmittedByOther && <div className="h-[60px]"></div>}
+              {isEmittedByOther && <ElectronicValidationBox user={data.currentUser} />}
             </div>
           </div>
         </div>
 
+        {/* Rodapé Final */}
         <div className="mt-12 pt-4 border-t border-slate-200 text-[8px] text-slate-400 flex justify-between italic">
           <span>Relatório gerado via Portal RDA - G4F SOLUÇÕES</span>
-          <span className="font-bold uppercase">Documento Interno</span>
+          <span className="font-bold uppercase tracking-widest">Documento Interno</span>
         </div>
       </div>
 
+      {/* Interface de Botões (Não sai na impressão) */}
       <div className="no-print fixed bottom-6 left-0 right-0 flex justify-center gap-4 z-50">
-        <button onClick={() => window.print()} className="bg-blue-600 text-white px-6 py-2 rounded-full font-bold shadow-lg hover:bg-blue-700 transition-all text-sm flex items-center gap-2">Imprimir RDA</button>
-        <button onClick={() => navigate('/dashboard')} className="bg-white border border-slate-300 text-slate-700 px-6 py-2 rounded-full font-bold shadow-md hover:bg-slate-50 transition-all text-sm">Voltar</button>
+        <button 
+          onClick={() => window.print()} 
+          className="bg-blue-600 text-white px-8 py-2.5 rounded-full font-bold shadow-2xl hover:bg-blue-700 transition-all text-sm flex items-center gap-2"
+        >
+          Imprimir RDA
+        </button>
+        <button 
+          onClick={() => navigate('/dashboard')} 
+          className="bg-white border border-slate-300 text-slate-700 px-8 py-2.5 rounded-full font-bold shadow-lg hover:bg-slate-50 transition-all text-sm"
+        >
+          Voltar ao Dashboard
+        </button>
       </div>
     </div>
   );
