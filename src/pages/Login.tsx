@@ -19,7 +19,6 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Se já estiver logado, redireciona para o dashboard ou para onde estava tentando ir
   useEffect(() => {
     if (user) {
       const from = (location.state as any)?.from?.pathname || "/dashboard";
@@ -35,7 +34,7 @@ const Login = () => {
       login(userData);
       showSuccess(`Bem-vindo, ${userData.name}!`);
     } catch (err) {
-      showError("Falha na autenticação com o GLPI.");
+      showError("Falha na autenticação (Reduc).");
     } finally {
       setLoading(false);
     }
@@ -43,18 +42,19 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <Card className="w-full max-w-md shadow-xl border-t-4 border-t-blue-600">
+      <Card className="w-full max-w-md shadow-xl border-t-4 border-t-green-600">
         <CardHeader className="space-y-4 flex flex-col items-center pb-8">
           <div className="w-48 h-20 flex items-center justify-center overflow-hidden">
+            {/* Logo da Petrobras Reduc */}
             <img 
-              src="https://raw.githubusercontent.com/clesiosantos/glpihmg4f/main/LOGOAZUL.png" 
-              alt="Logo RDA" 
+              src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Petrobras_logo.svg/1280px-Petrobras_logo.svg.png" 
+              alt="Logo Reduc" 
               className="max-w-full max-h-full object-contain"
             />
           </div>
           <div className="text-center space-y-1">
-            <CardTitle className="text-2xl font-bold text-slate-800">Portal RDA</CardTitle>
-            <CardDescription>Entre com suas credenciais do GLPI</CardDescription>
+            <CardTitle className="text-2xl font-bold text-slate-800">Portal RDA - Reduc</CardTitle>
+            <CardDescription>Acesse com suas credenciais do GLPI Reduc</CardDescription>
           </div>
         </CardHeader>
         <form onSubmit={handleLogin}>
@@ -67,7 +67,7 @@ const Login = () => {
                 value={userStr}
                 onChange={(e) => setUserStr(e.target.value)}
                 required 
-                className="focus-visible:ring-blue-600"
+                className="focus-visible:ring-green-600"
               />
             </div>
             <div className="space-y-2">
@@ -78,15 +78,15 @@ const Login = () => {
                 value={pass}
                 onChange={(e) => setPass(e.target.value)}
                 required 
-                className="focus-visible:ring-blue-600"
+                className="focus-visible:ring-green-600"
               />
             </div>
           </CardContent>
           <CardFooter className="pt-4">
-            <Button className="w-full bg-blue-600 hover:bg-blue-700 transition-colors" type="submit" disabled={loading}>
+            <Button className="w-full bg-green-700 hover:bg-green-800 transition-colors" type="submit" disabled={loading}>
               {loading ? "Autenticando..." : (
                 <>
-                  <LogIn className="mr-2 h-4 w-4" /> Acessar Sistema
+                  <LogIn className="mr-2 h-4 w-4" /> Acessar Reduc
                 </>
               )}
             </Button>
