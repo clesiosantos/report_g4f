@@ -9,6 +9,7 @@ const ReportPrint = () => {
   const navigate = useNavigate();
   const [data, setData] = useState<{ tickets: TicketReport[], user: GLPIUser, period: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [signatureDate] = useState(new Date().toLocaleString('pt-BR'));
 
   useEffect(() => {
     const state = location.state as any;
@@ -76,11 +77,17 @@ const ReportPrint = () => {
   return (
     <div className="bg-white min-h-screen p-8 print:p-0 font-sans text-slate-900">
       <style dangerouslySetInnerHTML={{ __html: `
+        @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&display=swap');
+        
         @media print {
           @page { size: A4; margin: 1cm; }
           body { -webkit-print-color-adjust: exact; }
           .no-print { display: none; }
           tr { page-break-inside: avoid; }
+        }
+        
+        .signature-font {
+          font-family: 'Dancing Script', cursive;
         }
       `}} />
       
@@ -101,9 +108,10 @@ const ReportPrint = () => {
           <div className="py-0.5 border-b border-slate-100"><span className="font-bold">GERÊNCIA LOTAÇÃO:</span> {data.user.gerencia}</div>
           
           <div className="py-0.5 border-b border-slate-100"><span className="font-bold">ATIVIDADE PRINCIPAL:</span> {data.user.entidade}</div>
-          <div className="py-0.5 border-b border-slate-100"><span className="font-bold">E-MAIL:</span> {data.user.email}</div>
+          <div className="py-0.5 border-b border-slate-100"><span className="font-bold">NOME DE USUÁRIO:</span> {data.user.name.split(' ')[0]}</div>
           
-          <div className="col-span-2 py-0.5 font-bold text-blue-700"><span className="text-slate-900">PERÍODO AVALIADO:</span> {data.period}</div>
+          <div className="py-0.5 border-b border-slate-100"><span className="font-bold">E-MAIL:</span> {data.user.email}</div>
+          <div className="col-span-1 py-0.5 border-b border-slate-100 font-bold text-blue-700"><span className="text-slate-900 font-bold">PERÍODO AVALIADO:</span> {data.period}</div>
         </div>
 
         <table className="w-full text-[9px] border-collapse border border-slate-400">
@@ -149,21 +157,44 @@ const ReportPrint = () => {
           </tbody>
         </table>
 
-        <div className="mt-16 grid grid-cols-2 gap-12 text-center text-[9px]">
-          <div className="space-y-1">
-            <div className="border-t border-slate-800 pt-1.5 font-bold">Assinatura do Colaborador</div>
-            <div className="text-slate-400 uppercase">{data.user.name}</div>
+        {/* Seção de Assinaturas */}
+        <div className="mt-12 grid grid-cols-2 gap-12 items-end">
+          {/* Assinatura Eletrônica do Colaborador */}
+          <div className="flex flex-col items-center">
+            <div className="mb-1 signature-font text-xl text-blue-800">{data.user.name}</div>
+            <div className="w-full border-t border-slate-800 pt-1 text-center">
+              <p className="text-[9px] font-bold">Assinatura do Colaborador</p>
+              <div className="mt-2 p-1.5 border border-dashed border-slate-300 rounded bg-slate-50 text-[7px] text-slate-500 leading-tight">
+                <span className="font-bold text-blue-700 block mb-0.5">VALIDAÇÃO ELETRÔNICA</span>
+                Assinado eletronicamente com a senha do usuário em: <span className="font-bold text-slate-700">{signatureDate}</span>
+              </div>
+            </div>
           </div>
-          <div className="space-y-1">
-            <div className="border-t border-slate-800 pt-1.5 font-bold">Aprovação / Validação</div>
-            <div className="text-slate-400">Gestor Responsável</div>
+
+          {/* Assinatura do Gestor */}
+          <div className="flex flex-col items-center pb-[10px]">
+            <div className="h-10 w-full"></div> {/* Espaço para assinatura manual */}
+            <div className="w-full border-t border-slate-800 pt-1 text-center">
+              <p className="text-[9px] font-bold">Aprovação / Validação</p>
+              <p className="text-[7px] text-slate-500 mt-1 uppercase">Gestor Responsável</p>
+            </div>
           </div>
+        </div>
+
+        {/* Rodapé Interno */}
+        <div className="mt-10 pt-2 border-t border-slate-200 text-[7px] text-slate-400 flex justify-between italic">
+          <span>Relatório gerado via Portal RDA - Integrado ao GLPI</span>
+          <span>Página 1 de 1</span>
         </div>
       </div>
 
       <div className="no-print mt-8 flex justify-center gap-4 pb-10">
-        <button onClick={() => window.print()} className="bg-blue-600 text-white px-6 py-2 rounded-full font-bold shadow-lg">Imprimir RDA</button>
-        <button onClick={() => navigate('/dashboard')} className="bg-slate-200 text-slate-800 px-6 py-2 rounded-full font-bold">Voltar</button>
+        <button onClick={() => window.print()} className="bg-blue-600 text-white px-6 py-2 rounded-full font-bold shadow-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+          Imprimir RDA
+        </button>
+        <button onClick={() => navigate('/dashboard')} className="bg-slate-200 text-slate-800 px-6 py-2 rounded-full font-bold hover:bg-slate-300 transition-colors">
+          Voltar
+        </button>
       </div>
     </div>
   );
