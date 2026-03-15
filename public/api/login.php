@@ -16,7 +16,7 @@ if (empty($user) || empty($pass)) {
 }
 
 try {
-    // Consulta otimizada fornecida pelo usuário
+    // Consulta ajustada para buscar perfil e entidade via glpi_profiles_users (vínculo real do GLPI)
     $sql = "
         SELECT
             u.id, 
@@ -28,15 +28,17 @@ try {
             p.chavecolaboradorfield AS chave,
             fc_manager_users(u.id) AS gerencia,
             pr.name AS profile_name,
-            en.name AS entidade
+            en.name AS entidade_name
         FROM glpi_users u
         LEFT JOIN glpi_useremails e ON (e.users_id = u.id AND e.is_default = 1)
         LEFT JOIN glpi_plugin_fields_useragrupamentos p ON (p.items_id = u.id)
-        LEFT JOIN glpi_profiles pr ON u.profiles_id = pr.id
-        INNER JOIN glpi_profiles_users pu ON pu.users_id = u.id
-        LEFT JOIN glpi_entities en ON en.id = pu.entities_id
+        -- Buscamos o vínculo de perfil e entidade ativo
+        LEFT JOIN glpi_profiles_users pu ON (pu.users_id = u.id)
+        LEFT JOIN glpi_profiles pr ON (pr.id = pu.profiles_id)
+        LEFT JOIN glpi_entities en ON (en.id = pu.entities_id)
         WHERE u.name = ?
         AND u.is_deleted = 0 
+        ORDER BY pu.is_dynamic DESC, pu.id DESC -- Pega o perfil mais recente/relevante
         LIMIT 1
     ";
     
@@ -50,14 +52,19 @@ try {
         exit;
     }
 
+    // Função auxiliar para evitar campos vazios no JSON
+    $getVal = function($val, $default) {
+        return (isset($val) && trim($val) !== '') ? $val : $default;
+    };
+
     echo json_encode([
         'id' => (int)$userData['id'],
         'name' => trim(($userData['firstname'] ?? '') . ' ' . ($userData['realname'] ?? '')),
-        'chave' => $userData['chave'] ?? $userData['name'],
-        'email' => $userData['email'] ?? 'N/A',
-        'gerencia' => $userData['gerencia'] ?? 'Não informada',
-        'profile' => $userData['profile_name'] ?? 'Posto de Trabalho',
-        'entidade' => $userData['entidade'] ?? 'N/A',
+        'chave' => $getVal($userData['chave'], $userData['name']),
+        'email' => $getVal($userData['email'], 'N/A'),
+        'gerencia' => $getVal($userData['gerencia'], 'Não informada'),
+        'profile' => $getVal($userData['profile_name'], 'Posto de Trabalho'),
+        'entidade' => $getVal($userData['entidade_name'], 'G4F - SEDE'),
         'session_token' => bin2hex(random_bytes(32))
     ]);
 

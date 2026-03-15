@@ -93,7 +93,6 @@ const ReportPrint = () => {
           <img src="https://raw.githubusercontent.com/clesiosantos/glpihmg4f/main/LOGOAZUL.png" alt="Logo" className="h-8 w-auto" />
         </div>
 
-        {/* Grade de Cabeçalho com os campos solicitados */}
         <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-[10px] border border-slate-300 p-3 rounded mb-4 bg-slate-50/30">
           <div className="py-0.5 border-b border-slate-100"><span className="font-bold">COLABORADOR:</span> {data.user.name}</div>
           <div className="py-0.5 border-b border-slate-100"><span className="font-bold">CHAVE COLABORADOR:</span> {data.user.chave}</div>
@@ -163,8 +162,8 @@ const ReportPrint = () => {
       </div>
 
       <div className="no-print mt-8 flex justify-center gap-4 pb-10">
-        <button onClick={() => window.print()} className="bg-blue-600 text-white px-6 py-2 rounded-full font-bold shadow-lg hover:bg-blue-700 transition-colors">Imprimir RDA</button>
-        <button onClick={() => navigate('/dashboard')} className="bg-slate-200 text-slate-800 px-6 py-2 rounded-full font-bold hover:bg-slate-300 transition-colors">Voltar</button>
+        <button onClick={() => window.print()} className="bg-blue-600 text-white px-6 py-2 rounded-full font-bold shadow-lg">Imprimir RDA</button>
+        <button onClick={() => navigate('/dashboard')} className="bg-slate-200 text-slate-800 px-6 py-2 rounded-full font-bold">Voltar</button>
       </div>
     </div>
   );
