@@ -13,8 +13,7 @@ if (empty($period) || empty($userId)) {
     exit;
 }
 
-// Consulta expandida para status 2, 3, 4, 5 e 6
-// Para chamados em aberto (2,3,4), usamos a data de criação (t.date) como fallback para o calendário
+// Consulta mesclada: Mantém os campos necessários para o RDA e adiciona os novos dados de gestão e fiscalização
 $sql = "
     SELECT 
         t.id,
@@ -24,6 +23,12 @@ $sql = "
         IFNULL(t.solvedate, t.closedate) as data_solucao,
         it.completename as servico,
         fc_users_name(t.users_id_recipient) AS posto_trabalho, 
+        
+        -- Novos campos da sua consulta
+        IFNULL(fc_groups_ticket(t.id, 2), fc_manager_users(t.users_id_recipient)) AS gerencia_origem,
+        fc_leader_prepost(t.users_id_recipient, 2) AS preposto,
+        fc_get_name_last_approval_status(t.id, c.periodo) AS fiscal_campo,
+        
         c.periodo as periodo_avaliado,
         CASE t.status 
             WHEN 2 THEN 'Atribuído'
@@ -36,6 +41,10 @@ $sql = "
     FROM glpi_tickets t
     LEFT JOIN glpi_itilcategories it ON it.id = t.itilcategories_id
     INNER JOIN calendario c ON (DATE(COALESCE(t.solvedate, t.closedate, t.date)) = c.data)
+    
+    -- Joins adicionais para metadados se necessário (opcional para performance se já temos as funções fc_)
+    -- LEFT JOIN glpi_users u ON u.id = t.users_id_recipient
+    
     WHERE c.periodo = ?
     AND t.users_id_recipient = ?
     AND t.status IN (2, 3, 4, 5, 6)
@@ -50,6 +59,7 @@ try {
     $results = $stmt->fetchAll();
     
     foreach ($results as &$row) {
+        // Limpeza da descrição (HTML -> Texto)
         $cleanDesc = html_entity_decode($row['descricao'] ?? '');
         $cleanDesc = strip_tags($cleanDesc);
         $row['descricao'] = trim(preg_replace('/\s+/', ' ', $cleanDesc));
