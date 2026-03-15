@@ -94,8 +94,16 @@ const Dashboard = () => {
   }, [tickets]);
 
   const handleExportPDF = () => {
-    if (!selectedPeriod || !selectedColaborador) return;
-    navigate('/print', { state: { tickets, user: selectedColaborador, period: selectedPeriod } });
+    if (!selectedPeriod || !selectedColaborador || !user) return;
+    // Passamos o usuário logado (emissor) e o colaborador selecionado (alvo do RDA)
+    navigate('/print', { 
+      state: { 
+        tickets, 
+        user: selectedColaborador, 
+        currentUser: user, 
+        period: selectedPeriod 
+      } 
+    });
   };
 
   if (!user) return null;
@@ -139,7 +147,7 @@ const Dashboard = () => {
                 </Select>
               </div>
 
-              {isManager && subordinates.length > 0 && (
+              {isManager && (
                 <div className="space-y-2 flex-1 w-full">
                   <Label className="flex items-center gap-2 text-slate-600 font-semibold">
                     <Users className="w-4 h-4" /> Colaborador
