@@ -51,7 +51,7 @@ const ReportPrint = () => {
       setData(state);
       const timer = setTimeout(() => {
         try { window.print(); } catch (e) {}
-      }, 3000); // Aumentado para dar tempo de carregar a localização
+      }, 3000); 
       return () => clearTimeout(timer);
     } else {
       const storedUser = localStorage.getItem('glpi_user');
@@ -199,11 +199,15 @@ const ReportPrint = () => {
             <div className="w-full border-t border-slate-800 pt-1 text-center">
               <p className="text-[9px] font-bold">Assinatura do Colaborador</p>
               <div className="mt-2 p-1.5 border border-dashed border-slate-300 rounded bg-slate-50 text-[6px] text-slate-500 leading-tight text-left">
-                <span className="font-bold text-blue-700 block mb-0.5 text-center text-[7px]">VALIDAÇÃO ELETRÔNICA</span>
-                • Data/Hora: <span className="font-bold text-slate-700">{signatureDate}</span><br/>
-                • IP: <span className="font-bold text-slate-700">{data.user.ip || 'Localhost'}</span><br/>
-                • Navegador: <span className="font-bold text-slate-700">{browserInfo}</span><br/>
-                • Local: <span className="font-bold text-slate-700">{geoLoc}</span>
+                <span className="font-bold text-blue-700 block mb-1 text-center text-[7px] uppercase tracking-wider">
+                  Validado eletronicamente com senha
+                </span>
+                <div className="grid grid-cols-1 gap-0.5">
+                  <div>• Data/Hora: <span className="font-bold text-slate-700">{signatureDate}</span></div>
+                  <div>• Endereço IP: <span className="font-bold text-slate-700">{data.user.ip || 'Localhost'}</span></div>
+                  <div>• Navegador: <span className="font-bold text-slate-700">{browserInfo}</span></div>
+                  <div>• Localização: <span className="font-bold text-slate-700">{geoLoc}</span></div>
+                </div>
               </div>
             </div>
           </div>
