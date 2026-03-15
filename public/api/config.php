@@ -16,7 +16,7 @@ if (!function_exists('loadEnv')) {
 loadEnv(__DIR__ . '/../../.env');
 
 // Configurações da API REST do GLPI
-define('GLPI_API_URL', getenv('GLPI_API_URL') ?: 'https://fisco.g4f.sharksolucoes.com.br/apirest.php/');
+define('GLPI_API_URL', getenv('GLPI_API_URL') ?: 'https://reduc.g4f.sharksolucoes.com.br/apirest.php/');
 define('GLPI_APP_TOKEN', getenv('GLPI_APP_TOKEN') ?: 'OsSl5jvHymW58g6blPXVGzVEMgrczOmCQ777ZjLE');
 
 /**

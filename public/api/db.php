@@ -25,8 +25,8 @@ loadEnv(__DIR__ . '/../../.env');
 loadEnv(__DIR__ . '/../../.env.local');
 
 $host = getenv('DB_HOST') ?: 'db.petro.local';
-$db   = getenv('DB_NAME') ?: 'glpi_fisco';
-$user = getenv('DB_USER') ?: 'glpi_fisco';
+$db   = getenv('DB_NAME') ?: 'glpi_reduc';
+$user = getenv('DB_USER') ?: 'glpi_reduc';
 $pass = getenv('DB_PASS') ?: 'GLPiDB@2024.';
 $charset = 'utf8mb4';
 
