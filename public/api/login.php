@@ -16,7 +16,6 @@ if (empty($user) || empty($pass)) {
 }
 
 try {
-    // 1. Busca básica do usuário para validar a senha
     $sqlUser = "SELECT id, name, password, realname, firstname FROM glpi_users WHERE name = ? AND is_deleted = 0 LIMIT 1";
     $stmtUser = $pdo->prepare($sqlUser);
     $stmtUser->execute([$user]);
@@ -24,11 +23,10 @@ try {
 
     if (!$userData || !password_verify($pass, $userData['password'])) {
         http_response_code(401);
-        echo json_encode(['error' => 'Usuário ou senha inválidos no GLPI']);
+        echo json_encode(['error' => 'Usuário ou senha inválidos']);
         exit;
     }
 
-    // 2. Busca o e-mail (separado para evitar quebras de JOIN)
     $email = 'N/A';
     $sqlEmail = "SELECT email FROM glpi_useremails WHERE users_id = ? AND is_default = 1 LIMIT 1";
     $stmtEmail = $pdo->prepare($sqlEmail);
@@ -36,8 +34,8 @@ try {
     $emailData = $stmtEmail->fetch();
     if ($emailData) $email = $emailData['email'];
 
-    // 3. Tenta buscar campos do plugin (Chave e Gerência)
-    $chave = $userData['name']; // Fallback para o nome de sistema
+    // Campos solicitados: Chave e Gerência Lotação
+    $chave = $userData['name']; 
     $gerencia = 'Não informada';
     
     try {
@@ -46,14 +44,13 @@ try {
         $stmtPlugin->execute([$userData['id']]);
         $pluginData = $stmtPlugin->fetch();
         if ($pluginData) {
+            // Chave do colaborador específica
             if (!empty($pluginData['chavecolaboradorfield'])) $chave = $pluginData['chavecolaboradorfield'];
+            // Gerência de Origem tratada como Lotação
             if (!empty($pluginData['gerenciadeorigemfield'])) $gerencia = $pluginData['gerenciadeorigemfield'];
         }
-    } catch (Exception $e) {
-        // Se a tabela do plugin não existir, apenas ignoramos e usamos os fallbacks
-    }
+    } catch (Exception $e) {}
 
-    // Define perfil baseado no nome (conforme regra anterior)
     $profile = 'Posto de Trabalho';
     $userNameLower = strtolower($user);
     if (str_contains($userNameLower, 'lider')) $profile = 'Lider';
@@ -69,9 +66,6 @@ try {
         'session_token' => bin2hex(random_bytes(32))
     ]);
 
-} catch (PDOException $e) {
-    http_response_code(500);
-    echo json_encode(['error' => 'Erro no banco de dados: ' . $e->getMessage()]);
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode(['error' => 'Erro interno: ' . $e->getMessage()]);
