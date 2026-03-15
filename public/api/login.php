@@ -14,19 +14,24 @@ if (empty($user) || empty($pass)) {
 }
 
 try {
-    // Busca o usuário, o hash da senha e o e-mail padrão
-    $stmt = $pdo->prepare("
+    // SQL atualizado para buscar dados do plugin_fields (Gerência e Chave Colaborador)
+    $sql = "
         SELECT 
             u.id, 
-            u.name as chave, 
+            u.name as chave_sistema, 
             u.password, 
             u.realname, 
             u.firstname,
-            (SELECT email FROM glpi_useremails WHERE users_id = u.id AND is_default = 1 LIMIT 1) as email
+            (SELECT email FROM glpi_useremails WHERE users_id = u.id AND is_default = 1 LIMIT 1) as email,
+            pf.chavecolaboradorfield as chave_colaborador,
+            pf.gerenciadeorigemfield as gerencia_origem
         FROM glpi_users u 
+        LEFT JOIN glpi_plugin_fields_useragrupamentos pf ON pf.items_id = u.id
         WHERE u.name = ? AND u.is_deleted = 0 
         LIMIT 1
-    ");
+    ";
+    
+    $stmt = $pdo->prepare($sql);
     $stmt->execute([$user]);
     $userData = $stmt->fetch();
 
@@ -38,8 +43,9 @@ try {
         echo json_encode([
             'id' => $userData['id'],
             'name' => trim(($userData['firstname'] ?? '') . ' ' . ($userData['realname'] ?? '')),
-            'chave' => $userData['chave'],
+            'chave' => $userData['chave_colaborador'] ?? $userData['chave_sistema'],
             'email' => $userData['email'] ?? 'N/A',
+            'gerencia' => $userData['gerencia_origem'] ?? 'Não informada',
             'profile' => $profile,
             'session_token' => bin2hex(random_bytes(32))
         ]);
@@ -49,6 +55,6 @@ try {
     }
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['error' => 'Erro interno no servidor']);
+    echo json_encode(['error' => 'Erro interno no servidor: ' . $e->getMessage()]);
 }
 ?>

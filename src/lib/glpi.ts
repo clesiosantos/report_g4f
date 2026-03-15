@@ -22,6 +22,7 @@ export interface GLPIUser {
   name: string;
   chave: string;
   email: string;
+  gerencia: string;
   profile: UserProfile;
   session_token: string;
 }
