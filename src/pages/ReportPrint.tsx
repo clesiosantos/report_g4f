@@ -8,32 +8,51 @@ const ReportPrint = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [data, setData] = useState<{ tickets: TicketReport[], user: GLPIUser, period: string } | null>(null);
+  const [debugLog, setDebugLog] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  const addLog = (msg: string) => {
+    console.log(`[RDA-DEBUG] ${msg}`);
+    setDebugLog(prev => [...prev, `${new Date().toLocaleTimeString()}: ${msg}`]);
+  };
+
   useEffect(() => {
-    // Tenta pegar do state da navegação (vindo do Dashboard)
     const state = location.state as any;
-    
+    addLog("Iniciando componente ReportPrint");
+    addLog(`State recebido: ${state ? "Sim" : "Não"}`);
+
     if (state && state.user && state.period) {
+      addLog(`Usuário: ${state.user.name}`);
+      addLog(`Período: ${state.period}`);
+      addLog(`Quantidade de tickets: ${state.tickets?.length || 0}`);
       setData(state);
-      // Agenda a impressão após garantir que o DOM renderizou
+      
       const timer = setTimeout(() => {
-        window.print();
-      }, 1500);
+        addLog("Chamando window.print()");
+        try {
+          window.print();
+        } catch (e) {
+          addLog(`Erro ao imprimir: ${e}`);
+        }
+      }, 2000);
       return () => clearTimeout(timer);
     } else {
-      // Caso de Refresh: tenta recuperar ao menos o usuário do localStorage
       const storedUser = localStorage.getItem('glpi_user');
+      addLog(`Usuário no localStorage: ${storedUser ? "Sim" : "Não"}`);
       if (!storedUser) {
+        addLog("Redirecionando para login por falta de credenciais");
         navigate('/');
       } else {
-        setError("As informações deste relatório não foram encontradas. Por favor, volte ao Dashboard e clique em 'Exportar PDF' novamente.");
+        setError("As informações de navegação foram perdidas (provavelmente por um refresh). Por favor, gere o relatório novamente no Dashboard.");
       }
     }
   }, [location, navigate]);
 
   const fullPeriodDates = useMemo(() => {
-    if (!data?.period) return [];
+    if (!data?.period) {
+      addLog("Cálculo de datas ignorado: falta dado de período");
+      return [];
+    }
     
     try {
       const months: Record<string, number> = {
@@ -41,17 +60,33 @@ const ReportPrint = () => {
         'JULHO': 6, 'AGOSTO': 7, 'SETEMBRO': 8, 'OUTUBRO': 9, 'NOVEMBRO': 10, 'DEZEMBRO': 11
       };
 
-      const parts = data.period.toUpperCase().trim().replace('/', ' ').split(/\s+/);
-      if (parts.length < 2) return [];
+      const rawPeriod = data.period.toUpperCase().trim();
+      addLog(`Processando período string: "${rawPeriod}"`);
+      
+      const parts = rawPeriod.replace('/', ' ').split(/\s+/);
+      addLog(`Partes identificadas: ${JSON.stringify(parts)}`);
+
+      if (parts.length < 2) {
+        throw new Error(`Formato de período inválido. Esperado "MÊS ANO" ou "MÊS/ANO", recebido: "${rawPeriod}"`);
+      }
 
       const monthName = parts[0];
       const year = parseInt(parts[1]);
-
-      if (months[monthName] === undefined || isNaN(year)) return [];
-
       const endMonth = months[monthName];
+
+      if (endMonth === undefined) {
+        throw new Error(`Mês "${monthName}" não reconhecido no mapeamento.`);
+      }
+
+      if (isNaN(year)) {
+        throw new Error(`Ano "${parts[1]}" não é um número válido.`);
+      }
+
+      // Regra: de 10 do mês anterior a 09 do mês atual
       const endDate = new Date(year, endMonth, 9);
       const startDate = new Date(year, endMonth - 1, 10);
+      
+      addLog(`Datas calculadas: Início=${startDate.toISOString().split('T')[0]}, Fim=${endDate.toISOString().split('T')[0]}`);
 
       const dates = [];
       let current = new Date(startDate);
@@ -61,8 +96,12 @@ const ReportPrint = () => {
         current.setDate(current.getDate() + 1);
         safety++;
       }
+      
+      addLog(`Total de dias no período: ${dates.length}`);
       return dates;
-    } catch (e) {
+    } catch (e: any) {
+      addLog(`ERRO NO PARSING: ${e.message}`);
+      setError(`Erro técnico ao processar período: ${e.message}`);
       return [];
     }
   }, [data]);
@@ -81,14 +120,19 @@ const ReportPrint = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
-        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md text-center border-t-4 border-amber-500">
-          <h2 className="text-xl font-bold text-slate-800 mb-4">Relatório Indisponível</h2>
-          <p className="text-slate-600 mb-6">{error}</p>
-          <button 
-            onClick={() => navigate('/dashboard')}
-            className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors"
-          >
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50">
+        <div className="bg-white p-8 rounded-lg shadow-xl max-w-2xl w-full border-t-4 border-red-500">
+          <h2 className="text-xl font-bold text-slate-800 mb-4">Falha ao Gerar Relatório</h2>
+          <div className="bg-red-50 text-red-700 p-4 rounded mb-6 text-sm font-mono whitespace-pre-wrap">
+            {error}
+          </div>
+          <div className="text-left mb-6">
+            <h3 className="text-xs font-bold text-slate-400 uppercase mb-2">Logs de Depuração:</h3>
+            <div className="bg-slate-900 text-slate-300 p-3 rounded text-[10px] h-40 overflow-y-auto font-mono">
+              {debugLog.map((log, i) => <div key={i}>{log}</div>)}
+            </div>
+          </div>
+          <button onClick={() => navigate('/dashboard')} className="w-full bg-blue-600 text-white py-3 rounded-md font-bold hover:bg-blue-700 transition-colors">
             Voltar ao Dashboard
           </button>
         </div>
@@ -98,10 +142,21 @@ const ReportPrint = () => {
 
   if (!data || fullPeriodDates.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-slate-500 font-medium">Preparando seu RDA...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <div className="text-center">
+            <p className="text-slate-700 font-bold">Preparando seu RDA...</p>
+            <p className="text-xs text-slate-400 mt-1">Isso pode levar alguns segundos conforme o volume de dados.</p>
+          </div>
+        </div>
+        <div className="mt-10 max-w-sm w-full px-4">
+          <div className="bg-slate-900/5 p-4 rounded-lg">
+            <p className="text-[10px] text-slate-500 uppercase font-bold mb-2">Status do Processamento:</p>
+            <div className="text-[9px] font-mono text-slate-600 space-y-1">
+              {debugLog.slice(-3).map((log, i) => <div key={i} className="truncate">{log}</div>)}
+            </div>
+          </div>
         </div>
       </div>
     );
