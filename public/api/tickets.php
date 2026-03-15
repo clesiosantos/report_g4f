@@ -13,10 +13,6 @@ if (empty($period) || empty($userId)) {
     exit;
 }
 
-/**
- * SQL Revisado para depuração.
- * Se o relatório estiver vazio, pode ser que 'f.date_creation' não esteja batendo com o 'calendario.data'.
- */
 $sql = "
     SELECT 
         t.id,
@@ -36,6 +32,7 @@ $sql = "
         
         c.periodo as periodo_avaliado,
         f.date_creation as data_aprovacao_solicitada,
+        f.content as reporte_enviado,
         CASE t.status 
             WHEN 2 THEN 'Atribuído'
             WHEN 3 THEN 'Planejado'
@@ -47,9 +44,9 @@ $sql = "
     FROM glpi_tickets t
     LEFT JOIN glpi_itilcategories it ON it.id = t.itilcategories_id
     
-    -- Usamos LEFT JOIN aqui para o chamado não sumir se não houver followup
+    -- Buscamos o último acompanhamento para extrair o reporte
     LEFT JOIN (
-        SELECT f1.items_id, f1.date_creation
+        SELECT f1.items_id, f1.date_creation, f1.content
         FROM glpi_itilfollowups f1
         WHERE f1.id = (
             SELECT MAX(f2.id) 
@@ -58,7 +55,6 @@ $sql = "
         )
     ) f ON f.items_id = t.id
     
-    -- Vinculamos o calendário. Se f.date_creation for NULL, tentamos pela data do ticket como fallback
     INNER JOIN calendario c ON (DATE(COALESCE(f.date_creation, t.solvedate, t.closedate, t.date)) = c.data)
     
     WHERE c.periodo = ?
@@ -71,23 +67,26 @@ $sql = "
 
 try {
     $stmt = $pdo->prepare($sql);
-    // Passamos o período para as funções de fiscal e para o filtro WHERE
     $stmt->execute([$period, $period, $period, $userId]);
     $results = $stmt->fetchAll();
     
     foreach ($results as &$row) {
+        // Limpeza da descrição original do ticket
         $cleanDesc = html_entity_decode($row['descricao'] ?? '');
         $cleanDesc = strip_tags($cleanDesc);
         $row['descricao'] = trim(preg_replace('/\s+/', ' ', $cleanDesc));
+
+        // Limpeza do reporte enviado (follow-up)
+        $cleanReporte = html_entity_decode($row['reporte_enviado'] ?? '');
+        $cleanReporte = strip_tags($cleanReporte);
+        $row['reporte_enviado'] = trim(preg_replace('/\s+/', ' ', $cleanReporte));
     }
     
     echo json_encode($results);
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode([
-        'error' => 'Erro SQL: ' . $e->getMessage(),
-        'debug_sql' => $sql,
-        'params' => ['period' => $period, 'user_id' => $userId]
+        'error' => 'Erro SQL: ' . $e->getMessage()
     ]);
 }
 ?>

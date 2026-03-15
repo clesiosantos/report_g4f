@@ -54,7 +54,6 @@ const ReportPrint = () => {
     }
   }, [location, navigate]);
 
-  // Ordena os tickets por data para a listagem agrupada
   const sortedTickets = useMemo(() => {
     if (!data?.tickets) return [];
     return [...data.tickets].sort((a, b) => a.data_criacao.localeCompare(b.data_criacao));
@@ -98,7 +97,6 @@ const ReportPrint = () => {
       `}} />
       
       <div className="max-w-[210mm] mx-auto">
-        {/* Cabeçalho */}
         <div className="flex justify-between items-center border-b-2 border-slate-800 pb-2 mb-4">
           <div className="space-y-0.5">
             <h1 className="text-md font-bold uppercase tracking-tight">Relatório Diário de Atividade - RDA</h1>
@@ -107,7 +105,6 @@ const ReportPrint = () => {
           <img src="https://raw.githubusercontent.com/clesiosantos/glpihmg4f/main/LOGOAZUL.png" alt="Logo" className="h-8 w-auto" />
         </div>
 
-        {/* Informações do Colaborador */}
         <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-[9px] border border-slate-300 p-3 rounded mb-4 bg-slate-50/20">
           <div className="border-b border-slate-100"><span className="font-bold">COLABORADOR:</span> {data.user.name}</div>
           <div className="border-b border-slate-100"><span className="font-bold">NOME DE USUÁRIO:</span> {data.user.username}</div>
@@ -121,7 +118,6 @@ const ReportPrint = () => {
           </div>
         </div>
 
-        {/* Bloco Único de Atividades Realizadas */}
         <div className="border border-slate-400 rounded overflow-hidden">
           <div className="bg-slate-100 border-b border-slate-400 p-2 text-[10px] font-bold uppercase tracking-wider text-center">
             Atividades Realizadas no Período
@@ -131,8 +127,8 @@ const ReportPrint = () => {
               <table className="w-full text-[9px] border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200">
-                    <th className="text-left py-1 w-20">Data</th>
-                    <th className="text-left py-1">Descrição do Chamado</th>
+                    <th className="text-left py-1 w-20">Data Atividade</th>
+                    <th className="text-left py-1">Descrição / Reporte Enviado</th>
                     <th className="text-right py-1 w-24">Ticket</th>
                   </tr>
                 </thead>
@@ -144,7 +140,13 @@ const ReportPrint = () => {
                       </td>
                       <td className="py-2 align-top pr-4">
                         <div className="font-bold text-slate-900 leading-tight mb-0.5">{ticket.titulo}</div>
-                        <div className="text-slate-600 leading-relaxed italic text-[8.5px]">{ticket.descricao}</div>
+                        <div className="text-slate-600 leading-relaxed text-[8.5px] mb-1">{ticket.descricao}</div>
+                        {ticket.reporte_enviado && (
+                          <div className="mt-1.5 p-1.5 bg-slate-50 border-l-2 border-blue-400 text-slate-700 italic text-[8px] leading-snug">
+                            <span className="font-bold text-blue-700 not-italic uppercase text-[7px] block mb-0.5">Reporte do Colaborador ({new Date(ticket.data_aprovacao_solicitada || '').toLocaleDateString('pt-BR')}):</span>
+                            {ticket.reporte_enviado}
+                          </div>
+                        )}
                       </td>
                       <td className="py-2 align-top text-right font-mono font-bold text-blue-800">
                         #{ticket.id}
@@ -161,7 +163,6 @@ const ReportPrint = () => {
           </div>
         </div>
 
-        {/* Seção de Assinaturas */}
         <div className="mt-20 grid grid-cols-2 gap-12 items-start">
           <div className="text-center">
             <div className="min-h-[40px] flex items-end justify-center mb-1">
@@ -187,7 +188,6 @@ const ReportPrint = () => {
           </div>
         </div>
 
-        {/* Rodapé Final */}
         <div className="mt-12 pt-4 border-t border-slate-200 text-[8px] text-slate-400 flex justify-between italic">
           <span>Relatório gerado via Portal RDA - G4F SOLUÇÕES</span>
           <span className="font-bold uppercase tracking-widest">Documento Interno</span>

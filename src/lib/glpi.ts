@@ -12,9 +12,10 @@ export interface TicketReport {
   preposto: string;
   periodo_avaliado: string;
   status: string;
-  fiscal_campo: string;      // Nome do Fiscal
-  status_aprovacao: string;  // Status (Ex: APROVADO)
-  data_aprovacao_solicitada?: string; // Nova data para o Dashboard
+  fiscal_campo: string;      
+  status_aprovacao: string;  
+  data_aprovacao_solicitada?: string; 
+  reporte_enviado?: string; // Conteúdo do follow-up (reporte)
 }
 
 export interface GLPIUser {

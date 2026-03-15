@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { LogOut, Filter, Loader2, Download, CheckCircle2, XCircle, CalendarClock } from "lucide-react";
+import { LogOut, Filter, Loader2, Download, CheckCircle2, XCircle, CalendarClock, MessageSquare } from "lucide-react";
 import { glpiService, TicketReport, GLPIUser } from '@/lib/glpi';
 import { showError } from '@/utils/toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -156,7 +156,7 @@ const Dashboard = () => {
             <TableHeader className="bg-slate-50">
               <TableRow>
                 <TableHead className="w-[120px]">Data Atividade</TableHead>
-                <TableHead className="w-[120px]">Criac. Relatório</TableHead>
+                <TableHead className="w-[180px]">Reporte Enviado</TableHead>
                 <TableHead>Atividade e Fiscalização</TableHead>
                 <TableHead className="text-center">Tickets</TableHead>
               </TableRow>
@@ -167,14 +167,26 @@ const Dashboard = () => {
               ) : groupedData.map(([date, items]) => (
                 <TableRow key={date}>
                   <TableCell className="font-bold py-5">{new Date(date + 'T12:00:00').toLocaleDateString('pt-BR')}</TableCell>
-                  <TableCell className="py-5 text-slate-500 text-xs font-medium">
+                  <TableCell className="py-5">
                     <div className="space-y-4">
                       {items.map((item, idx) => (
                         <div key={item.id} className={idx > 0 ? "pt-3 border-t border-transparent" : ""}>
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 text-[10px] text-blue-700 font-bold mb-1">
                             <CalendarClock className="w-3 h-3" />
                             {formatDate(item.data_aprovacao_solicitada)}
                           </div>
+                          {item.reporte_enviado ? (
+                            <div className="bg-blue-50/50 p-2 rounded border border-blue-100/50">
+                              <div className="flex items-start gap-1.5">
+                                <MessageSquare className="w-3 h-3 text-blue-500 mt-0.5 flex-shrink-0" />
+                                <p className="text-[10px] text-slate-600 italic leading-relaxed line-clamp-3">
+                                  {item.reporte_enviado}
+                                </p>
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 italic">Sem reporte escrito</span>
+                          )}
                         </div>
                       ))}
                     </div>
