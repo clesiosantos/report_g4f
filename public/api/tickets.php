@@ -13,6 +13,10 @@ if (empty($period) || empty($userId)) {
     exit;
 }
 
+/**
+ * SQL Revisado para depuração.
+ * Se o relatório estiver vazio, pode ser que 'f.date_creation' não esteja batendo com o 'calendario.data'.
+ */
 $sql = "
     SELECT 
         t.id,
@@ -23,9 +27,9 @@ $sql = "
         it.completename as servico,
         fc_users_name(t.users_id_recipient) AS posto_trabalho, 
         
-        -- Informações de fiscalização solicitadas
-        fc_get_name_last_approval_status(t.id, c.periodo) AS fiscal_campo,
-        fc_get_last_approval_status(t.id, c.periodo) AS status_aprovacao,
+        -- Fiscalização
+        fc_get_name_last_approval_status(t.id, ?) AS fiscal_campo,
+        fc_get_last_approval_status(t.id, ?) AS status_aprovacao,
         
         IFNULL(fc_groups_ticket(t.id, 2), fc_manager_users(t.users_id_recipient)) AS gerencia_origem,
         fc_leader_prepost(t.users_id_recipient, 2) AS preposto,
@@ -42,7 +46,9 @@ $sql = "
         END as status
     FROM glpi_tickets t
     LEFT JOIN glpi_itilcategories it ON it.id = t.itilcategories_id
-    INNER JOIN (
+    
+    -- Usamos LEFT JOIN aqui para o chamado não sumir se não houver followup
+    LEFT JOIN (
         SELECT f1.items_id, f1.date_creation
         FROM glpi_itilfollowups f1
         WHERE f1.id = (
@@ -51,7 +57,10 @@ $sql = "
             WHERE f2.itemtype = 'Ticket' AND f2.items_id = f1.items_id
         )
     ) f ON f.items_id = t.id
-    INNER JOIN calendario c ON (DATE(f.date_creation) = c.data)
+    
+    -- Vinculamos o calendário. Se f.date_creation for NULL, tentamos pela data do ticket como fallback
+    INNER JOIN calendario c ON (DATE(COALESCE(f.date_creation, t.solvedate, t.closedate, t.date)) = c.data)
+    
     WHERE c.periodo = ?
     AND t.users_id_recipient = ?
     AND t.status IN (2, 3, 4, 5, 6)
@@ -62,7 +71,8 @@ $sql = "
 
 try {
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([$period, $userId]);
+    // Passamos o período para as funções de fiscal e para o filtro WHERE
+    $stmt->execute([$period, $period, $period, $userId]);
     $results = $stmt->fetchAll();
     
     foreach ($results as &$row) {
@@ -70,9 +80,14 @@ try {
         $cleanDesc = strip_tags($cleanDesc);
         $row['descricao'] = trim(preg_replace('/\s+/', ' ', $cleanDesc));
     }
+    
     echo json_encode($results);
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['error' => 'Erro SQL: ' . $e->getMessage()]);
+    echo json_encode([
+        'error' => 'Erro SQL: ' . $e->getMessage(),
+        'debug_sql' => $sql,
+        'params' => ['period' => $period, 'user_id' => $userId]
+    ]);
 }
 ?>
