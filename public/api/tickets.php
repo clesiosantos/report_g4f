@@ -13,6 +13,7 @@ if (empty($period) || empty($userId)) {
     exit;
 }
 
+// Consulta atualizada para incluir status 5 (Solucionado) e 6 (Fechado)
 $sql = "
     SELECT 
         t.id,
@@ -23,13 +24,17 @@ $sql = "
         it.completename as servico,
         fc_users_name(t.users_id_recipient) AS posto_trabalho, 
         c.periodo as periodo_avaliado,
-        'Fechado' as status
+        CASE t.status 
+            WHEN 5 THEN 'Solucionado'
+            WHEN 6 THEN 'Fechado'
+            ELSE 'Outro'
+        END as status
     FROM glpi_tickets t
     LEFT JOIN glpi_itilcategories it ON it.id = t.itilcategories_id
-    INNER JOIN calendario c ON (DATE(t.closedate) = c.data OR DATE(t.solvedate) = c.data)
+    INNER JOIN calendario c ON (DATE(IFNULL(t.solvedate, t.closedate)) = c.data)
     WHERE c.periodo = ?
     AND t.users_id_recipient = ?
-    AND t.status = 6
+    AND t.status IN (5, 6)
     AND t.is_deleted = 0
     AND it.completename NOT REGEXP 'Justificativa'
     ORDER BY t.date DESC
