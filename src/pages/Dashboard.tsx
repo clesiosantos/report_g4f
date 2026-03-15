@@ -65,49 +65,19 @@ const Dashboard = () => {
     }
   };
 
-  // Lógica para gerar todas as datas do período (10 do mês anterior a 09 do mês atual)
-  const fullPeriodDates = useMemo(() => {
-    if (!selectedPeriod) return [];
-    
-    // Assume formato "MES/ANO" ou "MES ANO" do banco
-    const months: Record<string, number> = {
-      'JANEIRO': 0, 'FEVEREIRO': 1, 'MARÇO': 2, 'ABRIL': 3, 'MAIO': 4, 'JUNHO': 5,
-      'JULHO': 6, 'AGOSTO': 7, 'SETEMBRO': 8, 'OUTUBRO': 9, 'NOVEMBRO': 10, 'DEZEMBRO': 11
-    };
-
-    const parts = selectedPeriod.toUpperCase().replace('/', ' ').split(' ');
-    const monthName = parts[0];
-    const year = parseInt(parts[1]);
-
-    if (months[monthName] === undefined) return [];
-
-    const endMonth = months[monthName];
-    const endDate = new Date(year, endMonth, 9);
-    const startDate = new Date(year, endMonth - 1, 10);
-
-    const dates = [];
-    let current = new Date(startDate);
-    while (current <= endDate) {
-      dates.push(current.toISOString().split('T')[0]);
-      current.setDate(current.getDate() + 1);
-    }
-    return dates;
-  }, [selectedPeriod]);
-
-  const ticketsByDate = useMemo(() => {
-    const map: Record<string, TicketReport[]> = {};
-    tickets.forEach(t => {
-      const date = t.data_criacao.split(' ')[0];
-      if (!map[date]) map[date] = [];
-      map[date].push(t);
+  const groupedData = useMemo(() => {
+    const groups: Record<string, TicketReport[]> = {};
+    tickets.forEach(ticket => {
+      const date = ticket.data_criacao.split(' ')[0];
+      if (!groups[date]) groups[date] = [];
+      groups[date].push(ticket);
     });
-    return map;
+    return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
   }, [tickets]);
 
   const handleExportPDF = () => {
     if (!selectedPeriod || !user) return;
-    // Enviamos as datas completas para o PDF também
-    navigate('/print', { state: { tickets, user, period: selectedPeriod, fullDates: fullPeriodDates } });
+    navigate('/print', { state: { tickets, user, period: selectedPeriod } });
   };
 
   const handleLogout = () => {
@@ -127,7 +97,7 @@ const Dashboard = () => {
         <div className="flex items-center gap-4">
           <div className="text-right hidden md:block">
             <p className="text-sm font-bold text-slate-900">{user.name}</p>
-            <p className="text-xs text-blue-600">{user.gerencia}</p>
+            <p className="text-xs text-blue-600 font-medium">{user.gerencia}</p>
           </div>
           <Button variant="ghost" size="icon" onClick={handleLogout} className="hover:text-red-600">
             <LogOut className="w-5 h-5" />
@@ -138,7 +108,9 @@ const Dashboard = () => {
       <main className="p-6 max-w-7xl mx-auto space-y-6">
         <Card className="bg-white border-none shadow-md">
           <CardHeader className="pb-3 border-b mb-4">
-            <CardTitle className="text-lg flex items-center gap-2"><Filter className="w-4 h-4 text-blue-600" /> Parâmetros</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2 text-slate-700">
+              <Filter className="w-4 h-4 text-blue-600" /> Parâmetros de Consulta
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col md:flex-row gap-6 items-end">
@@ -166,49 +138,40 @@ const Dashboard = () => {
             <Table>
               <TableHeader className="bg-slate-50">
                 <TableRow>
-                  <TableHead className="w-[180px] font-bold">Data (Dia da Semana)</TableHead>
-                  <TableHead className="font-bold">Atividades Realizadas</TableHead>
-                  <TableHead className="w-[120px] font-bold">Chamados</TableHead>
+                  <TableHead className="w-[120px] font-bold">Data</TableHead>
+                  <TableHead className="font-bold">Atividades Lançadas</TableHead>
+                  <TableHead className="w-[120px] font-bold text-center">Chamados</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={3} className="h-64 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto" /></TableCell></TableRow>
-                ) : fullPeriodDates.map(date => {
-                  const items = ticketsByDate[date] || [];
-                  const dateObj = new Date(date + 'T12:00:00');
-                  const dayOfWeek = dateObj.toLocaleDateString('pt-BR', { weekday: 'long' });
-                  
-                  return (
-                    <TableRow key={date} className="hover:bg-slate-50 align-top">
-                      <TableCell className="font-bold text-slate-700 py-4 capitalize">
-                        {dateObj.toLocaleDateString('pt-BR')}<br/>
-                        <span className="text-[10px] text-slate-400 font-normal">{dayOfWeek}</span>
-                      </TableCell>
-                      <TableCell className="py-4">
-                        {items.length > 0 ? (
-                          <div className="space-y-3">
-                            {items.map((item, idx) => (
-                              <div key={item.id} className={idx > 0 ? "pt-2 border-t border-slate-100" : ""}>
-                                <div className="font-bold text-sm text-slate-800">{item.titulo}</div>
-                                <div className="text-xs text-slate-500 italic">{item.descricao}</div>
-                              </div>
-                            ))}
+                  <TableRow><TableCell colSpan={3} className="h-64 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-600" /></TableCell></TableRow>
+                ) : groupedData.length === 0 ? (
+                  <TableRow><TableCell colSpan={3} className="h-32 text-center text-slate-400">Nenhum chamado no período selecionado.</TableCell></TableRow>
+                ) : groupedData.map(([date, items]) => (
+                  <TableRow key={date} className="hover:bg-slate-50 align-top">
+                    <TableCell className="font-bold text-slate-700 py-4">
+                      {new Date(date + 'T12:00:00').toLocaleDateString('pt-BR')}
+                    </TableCell>
+                    <TableCell className="py-4">
+                      <div className="space-y-3">
+                        {items.map((item, idx) => (
+                          <div key={item.id} className={idx > 0 ? "pt-2 border-t border-slate-100" : ""}>
+                            <div className="font-bold text-sm text-slate-800">{item.titulo}</div>
+                            <div className="text-xs text-slate-500 italic leading-relaxed">{item.descricao}</div>
                           </div>
-                        ) : (
-                          <div className="text-slate-400 text-sm">Sem lançamento para o dia</div>
-                        )}
-                      </TableCell>
-                      <TableCell className="py-4">
-                        <div className="flex flex-wrap gap-1">
-                          {items.map(item => (
-                            <span key={item.id} className="text-[10px] font-mono font-bold px-1 py-0.5 bg-blue-100 text-blue-700 rounded">#{item.id}</span>
-                          ))}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4 text-center">
+                      <div className="flex flex-wrap justify-center gap-1">
+                        {items.map(item => (
+                          <span key={item.id} className="text-[10px] font-mono font-bold px-1 py-0.5 bg-blue-100 text-blue-700 rounded">#{item.id}</span>
+                        ))}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </CardContent>

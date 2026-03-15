@@ -7,17 +7,47 @@ import { TicketReport, GLPIUser } from '@/lib/glpi';
 const ReportPrint = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [data, setData] = useState<{ tickets: TicketReport[], user: GLPIUser, period: string, fullDates: string[] } | null>(null);
+  const [data, setData] = useState<{ tickets: TicketReport[], user: GLPIUser, period: string } | null>(null);
 
   useEffect(() => {
     const state = location.state as any;
-    if (!state || !state.user || !state.fullDates) {
+    if (!state || !state.user || !state.period) {
       navigate('/dashboard');
       return;
     }
     setData(state);
     setTimeout(() => window.print(), 1000);
   }, [location, navigate]);
+
+  // Lógica de cálculo de datas (Dia 10 a Dia 09) exclusiva para o Relatório
+  const fullPeriodDates = useMemo(() => {
+    if (!data?.period) return [];
+    
+    const months: Record<string, number> = {
+      'JANEIRO': 0, 'FEVEREIRO': 1, 'MARÇO': 2, 'ABRIL': 3, 'MAIO': 4, 'JUNHO': 5,
+      'JULHO': 6, 'AGOSTO': 7, 'SETEMBRO': 8, 'OUTUBRO': 9, 'NOVEMBRO': 10, 'DEZEMBRO': 11
+    };
+
+    const parts = data.period.toUpperCase().replace('/', ' ').split(' ');
+    const monthName = parts[0];
+    const year = parseInt(parts[1]);
+
+    if (months[monthName] === undefined) return [];
+
+    const endMonth = months[monthName];
+    // Período termina no dia 09 do mês de referência
+    const endDate = new Date(year, endMonth, 9);
+    // Período inicia no dia 10 do mês anterior
+    const startDate = new Date(year, endMonth - 1, 10);
+
+    const dates = [];
+    let current = new Date(startDate);
+    while (current <= endDate) {
+      dates.push(current.toISOString().split('T')[0]);
+      current.setDate(current.getDate() + 1);
+    }
+    return dates;
+  }, [data]);
 
   const ticketsByDate = useMemo(() => {
     if (!data) return {};
@@ -30,14 +60,7 @@ const ReportPrint = () => {
     return map;
   }, [data]);
 
-  const dateRange = useMemo(() => {
-    if (!data?.fullDates?.length) return "";
-    const start = new Date(data.fullDates[0] + 'T12:00:00').toLocaleDateString('pt-BR');
-    const end = new Date(data.fullDates[data.fullDates.length - 1] + 'T12:00:00').toLocaleDateString('pt-BR');
-    return `${start} a ${end}`;
-  }, [data]);
-
-  if (!data) return null;
+  if (!data || fullPeriodDates.length === 0) return null;
 
   return (
     <div className="bg-white min-h-screen p-8 print:p-0 font-sans text-slate-900">
@@ -65,7 +88,7 @@ const ReportPrint = () => {
           <div><span className="font-bold">E-MAIL:</span> {data.user.email}</div>
           <div><span className="font-bold">CHAVE:</span> {data.user.chave}</div>
           <div className="col-span-2"><span className="font-bold">GERÊNCIA LOTAÇÃO:</span> {data.user.gerencia}</div>
-          <div className="col-span-2"><span className="font-bold">PERÍODO AVALIADO:</span> {dateRange}</div>
+          <div className="col-span-2"><span className="font-bold">PERÍODO AVALIADO:</span> {data.period}</div>
         </div>
 
         <table className="w-full text-[9px] border-collapse border border-slate-400">
@@ -77,7 +100,7 @@ const ReportPrint = () => {
             </tr>
           </thead>
           <tbody>
-            {data.fullDates.map(date => {
+            {fullPeriodDates.map(date => {
               const items = ticketsByDate[date] || [];
               const dateObj = new Date(date + 'T12:00:00');
               const dayOfWeek = dateObj.toLocaleDateString('pt-BR', { weekday: 'long' });
@@ -99,7 +122,7 @@ const ReportPrint = () => {
                         ))}
                       </div>
                     ) : (
-                      <div className="text-slate-400 font-bold uppercase">Sem lançamento para o dia</div>
+                      <div className="text-slate-400 font-bold uppercase italic">Sem lançamento para o dia</div>
                     )}
                   </td>
                   <td className="border border-slate-400 p-1.5 align-top text-center font-mono">
