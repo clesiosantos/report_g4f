@@ -13,7 +13,10 @@ if (empty($period) || empty($userId)) {
     exit;
 }
 
-// Consulta mesclada: Mantém os campos necessários para o RDA e adiciona os novos dados de gestão e fiscalização
+/**
+ * Consulta atualizada:
+ * O período agora é determinado pela DATA DE CRIAÇÃO do último Followup (Aprovação).
+ */
 $sql = "
     SELECT 
         t.id,
@@ -24,12 +27,13 @@ $sql = "
         it.completename as servico,
         fc_users_name(t.users_id_recipient) AS posto_trabalho, 
         
-        -- Novos campos da sua consulta
+        -- Campos de gestão e fiscalização
         IFNULL(fc_groups_ticket(t.id, 2), fc_manager_users(t.users_id_recipient)) AS gerencia_origem,
         fc_leader_prepost(t.users_id_recipient, 2) AS preposto,
         fc_get_name_last_approval_status(t.id, c.periodo) AS fiscal_campo,
         
         c.periodo as periodo_avaliado,
+        f.date_creation as data_aprovacao_solicitada,
         CASE t.status 
             WHEN 2 THEN 'Atribuído'
             WHEN 3 THEN 'Planejado'
@@ -40,10 +44,20 @@ $sql = "
         END as status
     FROM glpi_tickets t
     LEFT JOIN glpi_itilcategories it ON it.id = t.itilcategories_id
-    INNER JOIN calendario c ON (DATE(COALESCE(t.solvedate, t.closedate, t.date)) = c.data)
     
-    -- Joins adicionais para metadados se necessário (opcional para performance se já temos as funções fc_)
-    -- LEFT JOIN glpi_users u ON u.id = t.users_id_recipient
+    -- Captura apenas o ÚLTIMO followup de cada ticket
+    INNER JOIN (
+        SELECT f1.items_id, f1.date_creation
+        FROM glpi_itilfollowups f1
+        WHERE f1.id = (
+            SELECT MAX(f2.id) 
+            FROM glpi_itilfollowups f2 
+            WHERE f2.itemtype = 'Ticket' AND f2.items_id = f1.items_id
+        )
+    ) f ON f.items_id = t.id
+    
+    -- O vínculo com o calendário agora é via data do followup
+    INNER JOIN calendario c ON (DATE(f.date_creation) = c.data)
     
     WHERE c.periodo = ?
     AND t.users_id_recipient = ?
@@ -68,6 +82,6 @@ try {
     echo json_encode($results);
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['error' => $e->getMessage()]);
+    echo json_encode(['error' => 'Erro SQL: ' . $e->getMessage()]);
 }
 ?>
