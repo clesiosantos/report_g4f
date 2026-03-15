@@ -16,9 +16,9 @@ if (empty($user) || empty($pass)) {
 }
 
 try {
-    // Consulta consolidada para buscar dados básicos, e-mail e campos do plugin
+    // Consulta baseada no seu teste de sucesso com DANIELA46
     $sql = "
-        SELECT 
+        SELECT
             u.id, 
             u.name, 
             u.password, 
@@ -26,11 +26,11 @@ try {
             u.firstname,
             e.email,
             p.chavecolaboradorfield AS chave,
-            p.gerenciadeorigemfield AS gerencia
+            fc_manager_users(u.id) AS gerencia
         FROM glpi_users u
         LEFT JOIN glpi_useremails e ON (e.users_id = u.id AND e.is_default = 1)
         LEFT JOIN glpi_plugin_fields_useragrupamentos p ON (p.items_id = u.id)
-        WHERE u.name = ? 
+        WHERE u.name = ?
         AND u.is_deleted = 0 
         LIMIT 1
     ";
@@ -45,7 +45,7 @@ try {
         exit;
     }
 
-    // Lógica de Perfil/Cargo (baseada no nome de usuário conforme solicitado anteriormente)
+    // Lógica de Perfil/Cargo (mantendo flexível para o relatório)
     $profile = 'Posto de Trabalho';
     $userNameLower = strtolower($user);
     if (str_contains($userNameLower, 'lider')) $profile = 'Líder';
