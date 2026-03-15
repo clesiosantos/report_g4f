@@ -101,9 +101,18 @@ const ReportPrint = () => {
   const approverName = isEmittedByOther ? data.currentUser.name : (data.user.lider || data.user.preposto || "Gestor Responsável");
   const approverRole = isEmittedByOther ? data.currentUser.profile : (data.user.lider ? "Líder" : (data.user.preposto ? "Preposto" : "Gestor"));
 
-  const ElectronicValidationLine = ({ user }: { user: GLPIUser }) => (
-    <div className="mt-1 text-[6px] text-slate-400 italic leading-none">
-      <span className="font-bold text-blue-600">VALIDAÇÃO ELETRÔNICA:</span> {signatureDate} | IP: {user.ip || '0.0.0.0'} | {browserInfo} | {geoLoc}
+  // Carimbo eletrônico em destaque (formato caixa)
+  const ElectronicValidation = ({ user }: { user: GLPIUser }) => (
+    <div className="mt-3 p-2 border border-dashed border-blue-200 rounded-md bg-slate-50 text-[7px] text-slate-500 leading-tight text-left max-w-[220px] mx-auto">
+      <span className="font-bold text-blue-700 block mb-1 text-center text-[7px] uppercase tracking-wider border-b border-blue-100 pb-0.5">
+        VALIDAÇÃO ELETRÔNICA G4F
+      </span>
+      <div className="grid grid-cols-1 gap-0.5">
+        <div><span className="font-bold">DATA/HORA:</span> {signatureDate}</div>
+        <div><span className="font-bold">IP ORIGEM:</span> {user.ip || '0.0.0.0'}</div>
+        <div><span className="font-bold">NAVEGADOR:</span> {browserInfo}</div>
+        <div className="truncate"><span className="font-bold">LOCALIZAÇÃO:</span> {geoLoc}</div>
+      </div>
     </div>
   );
 
@@ -184,32 +193,35 @@ const ReportPrint = () => {
           </tbody>
         </table>
 
-        <div className="mt-10 grid grid-cols-2 gap-12 items-start">
-          <div className="flex flex-col">
-            <div className="min-h-[30px] flex items-end justify-center mb-0.5">
-              <div className="signature-font text-xl text-blue-900/80">{data.user.name}</div>
+        {/* Seção de Assinaturas com Destaque */}
+        <div className="mt-16 grid grid-cols-2 gap-12 items-start">
+          <div className="flex flex-col h-full">
+            <div className="min-h-[40px] flex items-end justify-center mb-1">
+              <div className="signature-font text-2xl text-blue-900/80">{data.user.name}</div>
             </div>
-            <div className="border-t border-slate-800 pt-1 text-center">
-              <p className="text-[9px] font-bold uppercase">Assinatura do Colaborador</p>
-              <p className="text-[7px] text-slate-500">{data.user.name}</p>
-              {!isEmittedByOther && <ElectronicValidationLine user={data.user} />}
+            <div className="border-t border-slate-800 pt-2 text-center">
+              <p className="text-[10px] font-bold uppercase tracking-wider">Assinatura do Colaborador</p>
+              <p className="text-[8px] text-slate-500 mt-1">{data.user.name}</p>
+              {!isEmittedByOther && <ElectronicValidation user={data.user} />}
+              {isEmittedByOther && <div className="h-[60px]"></div>}
             </div>
           </div>
 
-          <div className="flex flex-col">
-            <div className="min-h-[30px] flex items-end justify-center mb-0.5">
-              {isEmittedByOther && <div className="signature-font text-xl text-blue-900/80">{data.currentUser.name}</div>}
+          <div className="flex flex-col h-full">
+            <div className="min-h-[40px] flex items-end justify-center mb-1">
+              {isEmittedByOther && <div className="signature-font text-2xl text-blue-900/80">{data.currentUser.name}</div>}
             </div>
-            <div className="border-t border-slate-800 pt-1 text-center">
-              <p className="text-[9px] font-bold uppercase">Aprovação / Validação</p>
-              <p className="text-[8px] text-slate-700 font-bold">{approverName}</p>
-              <p className="text-[7px] text-slate-500 uppercase italic leading-none">{approverRole}</p>
-              {isEmittedByOther && <ElectronicValidationLine user={data.currentUser} />}
+            <div className="border-t border-slate-800 pt-2 text-center">
+              <p className="text-[10px] font-bold uppercase tracking-wider">Aprovação / Validação</p>
+              <p className="text-[9px] text-slate-700 mt-1 font-bold">{approverName}</p>
+              <p className="text-[8px] text-slate-500 uppercase italic">{approverRole}</p>
+              {isEmittedByOther && <ElectronicValidation user={data.currentUser} />}
+              {!isEmittedByOther && <div className="h-[60px]"></div>}
             </div>
           </div>
         </div>
 
-        <div className="mt-8 pt-2 border-t border-slate-200 text-[7px] text-slate-400 flex justify-between italic">
+        <div className="mt-12 pt-4 border-t border-slate-200 text-[8px] text-slate-400 flex justify-between italic">
           <span>Relatório gerado via Portal RDA - G4F SOLUÇÕES</span>
           <span className="font-bold uppercase">Documento Interno</span>
         </div>
