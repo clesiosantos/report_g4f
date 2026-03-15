@@ -8,100 +8,58 @@ const ReportPrint = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [data, setData] = useState<{ tickets: TicketReport[], user: GLPIUser, period: string } | null>(null);
-  const [debugLog, setDebugLog] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-
-  const addLog = (msg: string) => {
-    console.log(`[RDA-DEBUG] ${msg}`);
-    setDebugLog(prev => [...prev, `${new Date().toLocaleTimeString()}: ${msg}`]);
-  };
 
   useEffect(() => {
     const state = location.state as any;
-    addLog("Iniciando componente ReportPrint");
-
     if (state && state.user && state.period) {
-      addLog(`Período recebido: ${state.period}`);
       setData(state);
-      
       const timer = setTimeout(() => {
-        try {
-          window.print();
-        } catch (e) {
-          addLog(`Erro ao imprimir: ${e}`);
-        }
+        try { window.print(); } catch (e) {}
       }, 2000);
       return () => clearTimeout(timer);
     } else {
       const storedUser = localStorage.getItem('glpi_user');
-      if (!storedUser) {
-        navigate('/');
-      } else {
-        setError("Dados não encontrados. Por favor, gere o relatório novamente no Dashboard.");
-      }
+      if (!storedUser) navigate('/');
+      else setError("Dados do relatório não encontrados. Por favor, exporte novamente.");
     }
   }, [location, navigate]);
 
   const fullPeriodDates = useMemo(() => {
     if (!data?.period) return [];
-    
     try {
       const monthsMap: Record<string, number> = {
         'JANEIRO': 0, 'FEVEREIRO': 1, 'MARÇO': 2, 'MARCO': 2, 'ABRIL': 3, 'MAIO': 4, 'JUNHO': 5,
         'JULHO': 6, 'AGOSTO': 7, 'SETEMBRO': 8, 'OUTUBRO': 9, 'NOVEMBRO': 10, 'DEZEMBRO': 11
       };
-
       const rawPeriod = data.period.toUpperCase().trim();
-      // Remove hífens, barras e espaços extras para isolar as palavras
       const parts = rawPeriod.split(/[\s\-/]+/).filter(p => p.length > 0);
-      addLog(`Partes identificadas: ${JSON.stringify(parts)}`);
-
       let monthIndex: number | null = null;
       let yearValue: number | null = null;
 
-      // Busca inteligente: identifica qual parte é o mês e qual é o ano
       parts.forEach(part => {
-        if (monthsMap[part] !== undefined) {
-          monthIndex = monthsMap[part];
-        } else if (!isNaN(parseInt(part)) && part.length === 4) {
-          yearValue = parseInt(part);
-        }
+        if (monthsMap[part] !== undefined) monthIndex = monthsMap[part];
+        else if (!isNaN(parseInt(part)) && part.length === 4) yearValue = parseInt(part);
       });
 
-      if (monthIndex === null || yearValue === null) {
-        throw new Error(`Não foi possível identificar o mês ou o ano no texto: "${rawPeriod}"`);
-      }
+      if (monthIndex === null || yearValue === null) return [];
 
-      addLog(`Identificado: Mês Index ${monthIndex}, Ano ${yearValue}`);
-
-      // Regra: de 10 do mês anterior a 09 do mês atual
       const endDate = new Date(yearValue, monthIndex, 9);
       const startDate = new Date(yearValue, monthIndex - 1, 10);
-      
-      addLog(`Intervalo: ${startDate.toISOString().split('T')[0]} até ${endDate.toISOString().split('T')[0]}`);
-
       const dates = [];
       let current = new Date(startDate);
-      let safety = 0;
-      while (current <= endDate && safety < 40) {
+      while (current <= endDate) {
         dates.push(current.toISOString().split('T')[0]);
         current.setDate(current.getDate() + 1);
-        safety++;
       }
-      
       return dates;
-    } catch (e: any) {
-      addLog(`ERRO: ${e.message}`);
-      setError(`Erro ao processar período: ${e.message}`);
-      return [];
-    }
+    } catch (e) { return []; }
   }, [data]);
 
   const ticketsByDate = useMemo(() => {
     if (!data?.tickets) return {};
     const map: Record<string, TicketReport[]> = {};
     data.tickets.forEach(t => {
-      if (!t.data_criacao) return;
       const date = t.data_criacao.split(' ')[0];
       if (!map[date]) map[date] = [];
       map[date].push(t);
@@ -109,32 +67,11 @@ const ReportPrint = () => {
     return map;
   }, [data]);
 
-  if (error) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50">
-        <div className="bg-white p-8 rounded-lg shadow-xl max-w-2xl w-full border-t-4 border-red-500 text-center">
-          <h2 className="text-xl font-bold text-slate-800 mb-4">Falha na Geração do Calendário</h2>
-          <p className="bg-red-50 text-red-700 p-4 rounded mb-6 text-sm">{error}</p>
-          <div className="text-left mb-6">
-            <h3 className="text-[10px] font-bold text-slate-400 uppercase mb-2">Histórico de Processamento:</h3>
-            <div className="bg-slate-900 text-slate-300 p-3 rounded text-[10px] h-32 overflow-y-auto font-mono">
-              {debugLog.map((log, i) => <div key={i}>{log}</div>)}
-            </div>
-          </div>
-          <button onClick={() => navigate('/dashboard')} className="bg-blue-600 text-white px-8 py-2 rounded font-bold">Voltar</button>
-        </div>
-      </div>
-    );
+  if (error || (data && fullPeriodDates.length === 0)) {
+    return <div className="p-20 text-center font-bold">{error || "Erro ao processar período do relatório."}</div>;
   }
 
-  if (!data || fullPeriodDates.length === 0) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center">
-        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="text-slate-600 font-bold">Processando dados do RDA...</p>
-      </div>
-    );
-  }
+  if (!data) return <div className="p-20 text-center">Carregando...</div>;
 
   return (
     <div className="bg-white min-h-screen p-8 print:p-0 font-sans text-slate-900">
@@ -156,13 +93,15 @@ const ReportPrint = () => {
           <img src="https://raw.githubusercontent.com/clesiosantos/glpihmg4f/main/LOGOAZUL.png" alt="Logo" className="h-8 w-auto" />
         </div>
 
-        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[10px] border border-slate-300 p-3 rounded mb-4 bg-slate-50/30">
-          <div><span className="font-bold">COLABORADOR:</span> {data.user.name}</div>
-          <div><span className="font-bold">FUNÇÃO:</span> {data.user.profile}</div>
-          <div><span className="font-bold">E-MAIL:</span> {data.user.email}</div>
-          <div><span className="font-bold">CHAVE:</span> {data.user.chave}</div>
-          <div className="col-span-2"><span className="font-bold">GERÊNCIA LOTAÇÃO:</span> {data.user.gerencia}</div>
-          <div className="col-span-2"><span className="font-bold">PERÍODO AVALIADO:</span> {data.period}</div>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-[10px] border border-slate-300 p-3 rounded mb-4 bg-slate-50/30">
+          <div className="py-0.5 border-b border-slate-100"><span className="font-bold">COLABORADOR:</span> {data.user.name}</div>
+          <div className="py-0.5 border-b border-slate-100"><span className="font-bold">CARGO:</span> {data.user.profile}</div>
+          
+          <div className="py-0.5 border-b border-slate-100"><span className="font-bold">E-MAIL:</span> {data.user.email}</div>
+          <div className="py-0.5 border-b border-slate-100"><span className="font-bold">CHAVE COLABORADOR:</span> {data.user.chave}</div>
+          
+          <div className="col-span-2 py-0.5 border-b border-slate-100"><span className="font-bold">GERÊNCIA LOTAÇÃO:</span> {data.user.gerencia}</div>
+          <div className="col-span-2 py-0.5"><span className="font-bold">PERÍODO AVALIADO:</span> {data.period}</div>
         </div>
 
         <table className="w-full text-[9px] border-collapse border border-slate-400">

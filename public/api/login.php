@@ -34,26 +34,28 @@ try {
     $emailData = $stmtEmail->fetch();
     if ($emailData) $email = $emailData['email'];
 
-    // Campos solicitados: Chave e Gerência Lotação
+    // Valores padrão
     $chave = $userData['name']; 
     $gerencia = 'Não informada';
     
+    // Busca na tabela de campos adicionais (Plugin Fields)
     try {
         $sqlPlugin = "SELECT chavecolaboradorfield, gerenciadeorigemfield FROM glpi_plugin_fields_useragrupamentos WHERE items_id = ? LIMIT 1";
         $stmtPlugin = $pdo->prepare($sqlPlugin);
         $stmtPlugin->execute([$userData['id']]);
         $pluginData = $stmtPlugin->fetch();
         if ($pluginData) {
-            // Chave do colaborador específica
             if (!empty($pluginData['chavecolaboradorfield'])) $chave = $pluginData['chavecolaboradorfield'];
-            // Gerência de Origem tratada como Lotação
             if (!empty($pluginData['gerenciadeorigemfield'])) $gerencia = $pluginData['gerenciadeorigemfield'];
         }
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+        // Silencioso se a tabela não existir
+    }
 
+    // Determinação do Perfil/Cargo simplificada para o portal
     $profile = 'Posto de Trabalho';
     $userNameLower = strtolower($user);
-    if (str_contains($userNameLower, 'lider')) $profile = 'Lider';
+    if (str_contains($userNameLower, 'lider')) $profile = 'Líder';
     if (str_contains($userNameLower, 'preposto')) $profile = 'Preposto';
 
     echo json_encode([
