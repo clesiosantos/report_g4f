@@ -13,10 +13,6 @@ if (empty($period) || empty($userId)) {
     exit;
 }
 
-/**
- * Consulta atualizada:
- * O período agora é determinado pela DATA DE CRIAÇÃO do último Followup (Aprovação).
- */
 $sql = "
     SELECT 
         t.id,
@@ -27,10 +23,12 @@ $sql = "
         it.completename as servico,
         fc_users_name(t.users_id_recipient) AS posto_trabalho, 
         
-        -- Campos de gestão e fiscalização
+        -- Informações de fiscalização solicitadas
+        fc_get_name_last_approval_status(t.id, c.periodo) AS fiscal_campo,
+        fc_get_last_approval_status(t.id, c.periodo) AS status_aprovacao,
+        
         IFNULL(fc_groups_ticket(t.id, 2), fc_manager_users(t.users_id_recipient)) AS gerencia_origem,
         fc_leader_prepost(t.users_id_recipient, 2) AS preposto,
-        fc_get_name_last_approval_status(t.id, c.periodo) AS fiscal_campo,
         
         c.periodo as periodo_avaliado,
         f.date_creation as data_aprovacao_solicitada,
@@ -44,8 +42,6 @@ $sql = "
         END as status
     FROM glpi_tickets t
     LEFT JOIN glpi_itilcategories it ON it.id = t.itilcategories_id
-    
-    -- Captura apenas o ÚLTIMO followup de cada ticket
     INNER JOIN (
         SELECT f1.items_id, f1.date_creation
         FROM glpi_itilfollowups f1
@@ -55,10 +51,7 @@ $sql = "
             WHERE f2.itemtype = 'Ticket' AND f2.items_id = f1.items_id
         )
     ) f ON f.items_id = t.id
-    
-    -- O vínculo com o calendário agora é via data do followup
     INNER JOIN calendario c ON (DATE(f.date_creation) = c.data)
-    
     WHERE c.periodo = ?
     AND t.users_id_recipient = ?
     AND t.status IN (2, 3, 4, 5, 6)
@@ -73,12 +66,10 @@ try {
     $results = $stmt->fetchAll();
     
     foreach ($results as &$row) {
-        // Limpeza da descrição (HTML -> Texto)
         $cleanDesc = html_entity_decode($row['descricao'] ?? '');
         $cleanDesc = strip_tags($cleanDesc);
         $row['descricao'] = trim(preg_replace('/\s+/', ' ', $cleanDesc));
     }
-    
     echo json_encode($results);
 } catch (Exception $e) {
     http_response_code(500);
