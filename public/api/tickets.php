@@ -1,5 +1,7 @@
 <?php
 require_once 'db.php';
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
 header('Content-Type: application/json');
 
 $period = $_GET['period'] ?? '';
@@ -11,7 +13,6 @@ if (empty($period) || empty($userId)) {
     exit;
 }
 
-// SQL atualizado com strip_tags para limpar a descrição e filtro por usuário
 $sql = "
     SELECT 
         t.id,
@@ -39,7 +40,6 @@ try {
     $stmt->execute([$period, $userId]);
     $results = $stmt->fetchAll();
     
-    // Limpando HTML da descrição antes de enviar
     foreach ($results as &$row) {
         $cleanDesc = html_entity_decode($row['descricao']);
         $cleanDesc = strip_tags($cleanDesc);

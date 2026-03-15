@@ -24,7 +24,7 @@ const Dashboard = () => {
   useEffect(() => {
     const storedUser = localStorage.getItem('glpi_user');
     if (!storedUser) {
-      navigate('/');
+      navigate('/', { replace: true });
       return;
     }
     const parsedUser = JSON.parse(storedUser);
@@ -48,7 +48,7 @@ const Dashboard = () => {
     };
     
     init();
-  }, []);
+  }, [navigate]);
 
   const loadData = async (period: string, userId?: number) => {
     const targetUserId = userId || user?.id;
@@ -83,8 +83,12 @@ const Dashboard = () => {
   const totalDays = groupedData.length;
 
   const handleLogout = () => {
+    // Limpa absolutamente tudo para evitar persistência
     localStorage.removeItem('glpi_user');
-    navigate('/');
+    localStorage.clear();
+    sessionStorage.clear();
+    // Força o redirecionamento com substituição de histórico
+    navigate('/', { replace: true });
   };
 
   if (!user) return null;

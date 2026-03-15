@@ -1,6 +1,11 @@
 <?php
 require_once 'db.php';
 require_once 'config.php';
+
+// Impedir cache do navegador/proxy
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Cache-Control: post-check=0, pre-check=0', false);
+header('Pragma: no-cache');
 header('Content-Type: application/json');
 
 $input = json_decode(file_get_contents('php://input'), true);
@@ -14,7 +19,6 @@ if (empty($user) || empty($pass)) {
 }
 
 try {
-    // SQL atualizado para buscar dados do plugin_fields (Gerência e Chave Colaborador)
     $sql = "
         SELECT 
             u.id, 
@@ -37,11 +41,12 @@ try {
 
     if ($userData && password_verify($pass, $userData['password'])) {
         $profile = 'Posto de Trabalho';
-        if (str_contains(strtolower($user), 'lider')) $profile = 'Lider';
-        if (str_contains(strtolower($user), 'preposto')) $profile = 'Preposto';
+        $userNameLower = strtolower($user);
+        if (str_contains($userNameLower, 'lider')) $profile = 'Lider';
+        if (str_contains($userNameLower, 'preposto')) $profile = 'Preposto';
 
         echo json_encode([
-            'id' => $userData['id'],
+            'id' => (int)$userData['id'],
             'name' => trim(($userData['firstname'] ?? '') . ' ' . ($userData['realname'] ?? '')),
             'chave' => $userData['chave_colaborador'] ?? $userData['chave_sistema'],
             'email' => $userData['email'] ?? 'N/A',
@@ -55,6 +60,6 @@ try {
     }
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['error' => 'Erro interno no servidor: ' . $e->getMessage()]);
+    echo json_encode(['error' => 'Erro interno no servidor']);
 }
 ?>
