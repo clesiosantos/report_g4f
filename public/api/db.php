@@ -3,6 +3,7 @@
  * Configurações do Banco de Dados GLPI
  */
 
+// Usamos as credenciais fornecidas por você como fallback direto
 $host = getenv('DB_HOST') ?: 'db.petro.local';
 $db   = getenv('DB_NAME') ?: 'glpi_fisco';
 $user = getenv('DB_USER') ?: 'glpi_fisco';
@@ -20,7 +21,7 @@ try {
      $pdo = new PDO($dsn, $user, $pass, $options);
 } catch (\PDOException $e) {
      header('Content-Type: application/json', true, 500);
-     echo json_encode(['error' => 'Falha na conexão com o banco de dados: ' . $e->getMessage()]);
+     echo json_encode(['error' => 'Falha na conexão com o banco de dados (Verifique se o db.petro.local é acessível): ' . $e->getMessage()]);
      exit;
 }
 ?>
