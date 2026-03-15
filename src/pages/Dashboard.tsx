@@ -3,24 +3,26 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { LogOut, Filter, Loader2, Download, XCircle, CalendarClock, MessageSquare, UserCheck, Send, Check, AlertCircle, Search } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { LogOut, Filter, Loader2, Download, XCircle, CalendarClock, MessageSquare, UserCheck, Send, Check, AlertCircle, Search, ChevronsUpDown } from "lucide-react";
 import { glpiService, TicketReport, GLPIUser } from '@/lib/glpi';
 import { showError } from '@/utils/toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { cn } from "@/lib/utils";
 
 const Dashboard = () => {
   const [tickets, setTickets] = useState<TicketReport[]>([]);
   const [periods, setPeriods] = useState<string[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState<string>("");
   const [subordinates, setSubordinates] = useState<GLPIUser[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
   const [selectedColaborador, setSelectedColaborador] = useState<GLPIUser | null>(null);
   const [loading, setLoading] = useState(false);
+  const [openCombobox, setOpenCombobox] = useState(false);
   
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -73,13 +75,6 @@ const Dashboard = () => {
     }
   };
 
-  const filteredSubordinates = useMemo(() => {
-    return subordinates.filter(s => 
-      s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      s.username.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [subordinates, searchTerm]);
-
   const groupedData = useMemo(() => {
     const groups: Record<string, TicketReport[]> = {};
     tickets.forEach(ticket => {
@@ -128,56 +123,85 @@ const Dashboard = () => {
           <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Filter className="w-4 h-4 text-blue-600" /> Filtros de Visualização</CardTitle></CardHeader>
           <CardContent>
             <div className="flex flex-col md:flex-row gap-6 items-end">
-              <div className="flex-[0.5] w-full">
-                <Label>Período de Competência</Label>
+              <div className="flex-[0.4] w-full">
+                <Label className="mb-2 block">Período de Competência</Label>
                 <Select value={selectedPeriod} onValueChange={(val) => { setSelectedPeriod(val); loadData(val, selectedColaborador?.id || user.id); }}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{periods.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+                  <SelectTrigger className="w-full bg-white border-slate-200"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-white">{periods.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               
               {isManager && (
-                <>
-                  <div className="flex-[0.5] w-full">
-                    <Label>Buscar Colaborador</Label>
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
-                      <Input 
-                        placeholder="Nome ou usuário..." 
-                        className="pl-9" 
-                        value={searchTerm} 
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex-1 w-full">
-                    <Label>Selecionar da Equipe</Label>
-                    <Select value={selectedColaborador?.id.toString()} onValueChange={(id) => {
-                      const col = subordinates.find(s => s.id === parseInt(id)) || (id === user.id.toString() ? user : null);
-                      if (col) { setSelectedColaborador(col); loadData(selectedPeriod, col.id); }
-                    }}>
-                      <SelectTrigger><SelectValue placeholder="Selecione um colaborador" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={user.id.toString()}>{user.name} (Meu Perfil)</SelectItem>
-                        {filteredSubordinates.filter(s => s.id !== user.id).map(sub => (
-                          <SelectItem key={sub.id} value={sub.id.toString()}>{sub.name}</SelectItem>
-                        ))}
-                        {filteredSubordinates.length === 0 && subordinates.length > 0 && (
-                          <div className="p-2 text-xs text-center text-slate-500">Nenhum resultado encontrado</div>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </>
+                <div className="flex-1 w-full">
+                  <Label className="mb-2 block">Selecionar Colaborador (Busca Inteligente)</Label>
+                  <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openCombobox}
+                        className="w-full justify-between bg-white border-slate-200 text-slate-700 hover:bg-slate-50 h-10 px-3 py-2 font-normal"
+                      >
+                        {selectedColaborador ? selectedColaborador.name : "Selecione um colaborador..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-white shadow-xl border-slate-200" align="start">
+                      <Command className="bg-white">
+                        <CommandInput placeholder="Digite o nome ou usuário..." className="h-10 text-sm" />
+                        <CommandList className="max-h-[300px] overflow-y-auto">
+                          <CommandEmpty className="py-6 text-center text-sm text-slate-500">Nenhum colaborador encontrado.</CommandEmpty>
+                          <CommandGroup heading="Ações">
+                            <CommandItem
+                              value={user.id.toString() + " " + user.name}
+                              onSelect={() => {
+                                setSelectedColaborador(user);
+                                loadData(selectedPeriod, user.id);
+                                setOpenCombobox(false);
+                              }}
+                              className="cursor-pointer hover:bg-blue-50 py-2.5 px-3 flex items-center gap-2"
+                            >
+                              <Check className={cn("h-4 w-4 text-blue-600", selectedColaborador?.id === user.id ? "opacity-100" : "opacity-0")} />
+                              <div className="flex flex-col">
+                                <span className="font-bold text-slate-900">{user.name}</span>
+                                <span className="text-[10px] text-blue-600 uppercase font-bold tracking-tight">Meu Perfil</span>
+                              </div>
+                            </CommandItem>
+                          </CommandGroup>
+                          <CommandGroup heading="Equipe">
+                            {subordinates.filter(s => s.id !== user.id).map((sub) => (
+                              <CommandItem
+                                key={sub.id}
+                                value={sub.id.toString() + " " + sub.name + " " + sub.username}
+                                onSelect={() => {
+                                  setSelectedColaborador(sub);
+                                  loadData(selectedPeriod, sub.id);
+                                  setOpenCombobox(false);
+                                }}
+                                className="cursor-pointer hover:bg-blue-50 py-2.5 px-3 flex items-center gap-2"
+                              >
+                                <Check className={cn("h-4 w-4 text-blue-600", selectedColaborador?.id === sub.id ? "opacity-100" : "opacity-0")} />
+                                <div className="flex flex-col">
+                                  <span className="font-medium text-slate-800">{sub.name}</span>
+                                  <span className="text-[10px] text-slate-400">@{sub.username}</span>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
               )}
-              <Button className="bg-blue-700 w-full md:w-auto" onClick={handleExportPDF} disabled={tickets.length === 0}><Download className="mr-2 h-4 w-4" /> Gerar Documento RDA</Button>
+              <Button className="bg-blue-700 hover:bg-blue-800 transition-colors w-full md:w-auto shadow-sm" onClick={handleExportPDF} disabled={tickets.length === 0}><Download className="mr-2 h-4 w-4" /> Gerar Documento RDA</Button>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="shadow-lg overflow-hidden bg-white">
+        <Card className="shadow-lg overflow-hidden bg-white border-slate-200">
           <Table>
-            <TableHeader className="bg-slate-100">
+            <TableHeader className="bg-slate-100/80">
               <TableRow>
                 <TableHead className="w-[120px] font-bold text-slate-700">Data</TableHead>
                 <TableHead className="font-bold text-slate-700">Atividade, Reporte e Fluxo de Aprovação</TableHead>
