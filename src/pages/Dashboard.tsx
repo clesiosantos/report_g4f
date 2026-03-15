@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { FileText, Download, LogOut, Filter, CalendarDays, Loader2, Users, ShieldCheck, CheckCircle2, XCircle } from "lucide-react";
+import { LogOut, Filter, Loader2, Download, CheckCircle2, XCircle } from "lucide-react";
 import { glpiService, TicketReport, GLPIUser } from '@/lib/glpi';
 import { showError } from '@/utils/toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,12 +24,14 @@ const Dashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const isSuperUser = useMemo(() => user?.username === 'glpi', [user]);
+  // Verifica se o usuário logado é o administrador padrão 'glpi'
+  const isSuperUser = useMemo(() => user?.username?.toLowerCase() === 'glpi', [user]);
+  
   const isManager = useMemo(() => {
     if (isSuperUser) return true;
     if (!user?.profile) return false;
     const profile = user.profile.toUpperCase();
-    return profile.includes('LIDER') || profile.includes('PREPOSTO');
+    return profile.includes('LIDER') || profile.includes('PREPOSTO') || profile.includes('ADMIN');
   }, [user, isSuperUser]);
 
   useEffect(() => {
@@ -43,9 +45,11 @@ const Dashboard = () => {
         setSelectedPeriod(defaultPeriod);
 
         if (isManager) {
+          // Se for super usuário, envia explicitamente o papel SUPER_ADMIN
           const role = isSuperUser ? 'SUPER_ADMIN' : (user.profile?.toUpperCase().includes('PREPOSTO') ? 'Preposto' : 'Lider');
           const subs = await glpiService.getSubordinates(user.id, role);
           setSubordinates(subs);
+          
           setSelectedColaborador(user);
           if (defaultPeriod) loadData(defaultPeriod, user.id);
         } else {
@@ -96,7 +100,7 @@ const Dashboard = () => {
       <header className="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-10 shadow-sm">
         <div className="flex items-center gap-3">
           <img src="https://raw.githubusercontent.com/clesiosantos/glpihmg4f/main/LOGOAZUL.png" alt="Logo G4F" className="h-8 w-auto" />
-          <h1 className="text-xl font-bold text-slate-800">Portal RDA</h1>
+          <h1 className="text-xl font-bold text-slate-800">Portal RDA {isSuperUser && "(Admin)"}</h1>
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right hidden md:block">
@@ -178,6 +182,9 @@ const Dashboard = () => {
                   </TableCell>
                 </TableRow>
               ))}
+              {tickets.length === 0 && !loading && (
+                <TableRow><TableCell colSpan={3} className="h-32 text-center text-slate-400">Nenhuma atividade encontrada para este período/colaborador.</TableCell></TableRow>
+              )}
             </TableBody>
           </Table>
         </Card>

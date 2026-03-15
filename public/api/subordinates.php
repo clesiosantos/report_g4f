@@ -3,7 +3,7 @@ require_once 'db.php';
 header('Content-Type: application/json');
 
 $managerId = $_GET['manager_id'] ?? '';
-$role = $_GET['role'] ?? '';
+$role = strtoupper($_GET['role'] ?? '');
 
 if (empty($managerId)) {
     http_response_code(400);
@@ -12,13 +12,13 @@ if (empty($managerId)) {
 }
 
 try {
-    // Busca o username do solicitante para checar se é o 'glpi'
+    // Busca o login do usuário para checar se é o super usuário 'glpi'
     $stmtCheck = $pdo->prepare("SELECT name FROM glpi_users WHERE id = ?");
     $stmtCheck->execute([$managerId]);
-    $requesterUsername = $stmtCheck->fetchColumn();
+    $requesterUsername = strtolower($stmtCheck->fetchColumn() ?: '');
 
-    if ($requesterUsername === 'glpi') {
-        // SQL Otimizado para Super Usuário (Retorna todos os usuários ativos)
+    // Se for o usuário 'glpi' OU se o papel enviado for SUPER_ADMIN, retorna TODOS os usuários ativos
+    if ($requesterUsername === 'glpi' || $role === 'SUPER_ADMIN') {
         $sql = "
             SELECT 
                 u.id, 
