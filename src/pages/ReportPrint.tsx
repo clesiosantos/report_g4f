@@ -10,14 +10,37 @@ const ReportPrint = () => {
   const [data, setData] = useState<{ tickets: TicketReport[], user: GLPIUser, period: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [signatureDate] = useState(new Date().toLocaleString('pt-BR'));
+  const [browserInfo, setBrowserInfo] = useState('');
+  const [geoLoc, setGeoLoc] = useState('Localização via rede');
 
   useEffect(() => {
+    // Detectar navegador simplificado
+    const ua = navigator.userAgent;
+    let browser = "Navegador Desconhecido";
+    if (ua.indexOf("Firefox") > -1) browser = "Mozilla Firefox";
+    else if (ua.indexOf("SamsungBrowser") > -1) browser = "Samsung Internet";
+    else if (ua.indexOf("Opera") > -1 || ua.indexOf("OPR") > -1) browser = "Opera";
+    else if (ua.indexOf("Trident") > -1) browser = "Internet Explorer";
+    else if (ua.indexOf("Edge") > -1 || ua.indexOf("Edg") > -1) browser = "Microsoft Edge";
+    else if (ua.indexOf("Chrome") > -1) browser = "Google Chrome";
+    else if (ua.indexOf("Safari") > -1) browser = "Apple Safari";
+    setBrowserInfo(browser);
+
+    // Tentar obter localização (opcional e assíncrono)
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setGeoLoc(`${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`),
+        () => setGeoLoc('Acesso à localização negado'),
+        { timeout: 5000 }
+      );
+    }
+
     const state = location.state as any;
     if (state && state.user && state.period) {
       setData(state);
       const timer = setTimeout(() => {
         try { window.print(); } catch (e) {}
-      }, 2000);
+      }, 2500);
       return () => clearTimeout(timer);
     } else {
       const storedUser = localStorage.getItem('glpi_user');
@@ -164,9 +187,12 @@ const ReportPrint = () => {
             <div className="mb-1 signature-font text-xl text-blue-800">{data.user.name}</div>
             <div className="w-full border-t border-slate-800 pt-1 text-center">
               <p className="text-[9px] font-bold">Assinatura do Colaborador</p>
-              <div className="mt-2 p-1.5 border border-dashed border-slate-300 rounded bg-slate-50 text-[7px] text-slate-500 leading-tight">
-                <span className="font-bold text-blue-700 block mb-0.5">VALIDAÇÃO ELETRÔNICA</span>
-                Assinado eletronicamente com a senha do usuário em: <span className="font-bold text-slate-700">{signatureDate}</span>
+              <div className="mt-2 p-1.5 border border-dashed border-slate-300 rounded bg-slate-50 text-[6px] text-slate-500 leading-tight text-left">
+                <span className="font-bold text-blue-700 block mb-0.5 text-center text-[7px]">VALIDAÇÃO ELETRÔNICA</span>
+                • Data/Hora: <span className="font-bold text-slate-700">{signatureDate}</span><br/>
+                • IP: <span className="font-bold text-slate-700">{data.user.ip}</span><br/>
+                • Navegador: <span className="font-bold text-slate-700">{browserInfo}</span><br/>
+                • Local: <span className="font-bold text-slate-700">{geoLoc}</span>
               </div>
             </div>
           </div>

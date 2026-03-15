@@ -56,6 +56,9 @@ try {
         return (isset($val) && trim($val) !== '') ? $val : $default;
     };
 
+    // Captura o IP do cliente
+    $clientIp = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+
     echo json_encode([
         'id' => (int)$userData['id'],
         'name' => trim(($userData['firstname'] ?? '') . ' ' . ($userData['realname'] ?? '')),
@@ -66,6 +69,7 @@ try {
         'entidade' => $getVal($userData['entidade_name'], 'G4F - SEDE'),
         'lider' => $getVal($userData['lider'], ''),
         'preposto' => $getVal($userData['preposto'], ''),
+        'ip' => $clientIp,
         'session_token' => bin2hex(random_bytes(32))
     ]);
 

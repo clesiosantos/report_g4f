@@ -25,6 +25,7 @@ export interface GLPIUser {
   entidade: string;
   lider: string;
   preposto: string;
+  ip: string;
   session_token: string;
 }
 
