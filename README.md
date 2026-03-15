@@ -1,74 +1,58 @@
-# Portal RDA - Relatório Diário de Atividade (Full-Stack)
+# Portal RDA - Relatório Diário de Atividade (Versão Final - REDUC)
 
-Interface moderna integrada ao banco de dados do GLPI 10 para gestão de produtividade e geração de RDAs assinados eletronicamente.
+Interface de alta performance integrada ao banco de dados do GLPI 10 para gestão de produtividade e geração de RDAs com validade jurídica interna.
+
+## 📋 Funcionalidades Principais
+- **Dashboard de Produtividade**: Visualização clara de tickets solucionados/fechados por período.
+- **Gestão Hierárquica**: Líderes e Prepostos podem visualizar e emitir RDAs de seus subordinados via busca inteligente (Combobox).
+- **Validação Eletrônica**: Sistema de carimbo digital que captura IP, Browser, Localização e Timestamp para auditoria.
+- **Impressão Otimizada**: Geração de documento PDF (A4) seguindo os padrões visuais da G4F.
 
 ## 🛠️ Stack Tecnológica
-- **Frontend**: React 19 + TypeScript + Tailwind CSS (Shadcn/UI)
-- **Backend**: PHP 8.2+ (API REST via PDO)
-- **Banco de Dados**: MySQL 8.0 / MariaDB (Estrutura GLPI 10)
-- **Servidor**: Apache (httpd) em Oracle Linux 9.7 (aarch64/x86_64)
+- **Frontend**: React 19, TypeScript, Tailwind CSS, Shadcn/UI.
+- **Backend**: PHP 8.2+ (API REST com PDO).
+- **Banco de Dados**: MySQL 8.0 / MariaDB (Estrutura GLPI 10 + Funções Customizadas).
+- **Servidor**: Apache (httpd) em Oracle Linux 9.7.
 
----
+## 🚀 Deploy e Instalação (Ambiente Produção)
 
-## 🚀 Guia de Instalação (Oracle Linux 9.7)
-
-### 1. Requisitos do Sistema
-Execute os comandos abaixo como `root` ou `sudo`:
-
+### 1. Preparação do Servidor
 ```bash
-# Atualizar o sistema
+# Instalar dependências básicas
 dnf update -y
-
-# Instalar Servidor Web Apache
-dnf install httpd -y
+dnf install httpd php php-mysqlnd php-pdo php-json nodejs -y
 systemctl enable --now httpd
-
-# Instalar PHP 8.2 e extensões necessárias
-dnf install php php-mysqlnd php-pdo php-json php-mbstring php-gd -y
-
-# Instalar Node.js 20+ (para Build do Frontend)
-dnf module enable nodejs:20 -y
-dnf install nodejs -y
 ```
 
-### 2. Configuração do Backend (Variáveis de Ambiente)
-As APIs estão localizadas em `public/api/`. Para facilitar a troca entre ambientes (Fisco/Reduc), você pode definir variáveis de ambiente no seu arquivo de configuração do Apache (`vhost`) ou no `.htaccess`:
-
-```apache
-# Exemplo no .htaccess ou vHost
-SetEnv DB_HOST db.petro.local
-SetEnv DB_NAME glpi_fisco
-SetEnv DB_USER glpi_fisco
-SetEnv DB_PASS SUA_SENHA_AQUI
-```
-
-Se as variáveis não forem encontradas, o sistema tentará conectar no banco **glpi_fisco** por padrão.
-
-### 3. Build e Deploy do Frontend
-No diretório onde o projeto foi clonado (ex: `/data/report_g4f`):
-
+### 2. Configuração do Projeto
+O sistema foi desenhado para rodar no diretório `/report` do servidor Web.
 ```bash
-# Instalar dependências do React
-npm install --legacy-peer-deps
-
-# Gerar build de produção
+# Clone e Build
+git clone -b REDUC https://github.com/clesiosantos/report_g4f.git
+cd report_g4f
+npm install
 npm run build
-
-# Criar link simbólico para o Apache e ajustar permissões
-sudo ln -s /data/report_g4f/dist /var/www/report
-sudo chown -R apache:apache /data/report_g4f
-sudo chmod -R 755 /data/report_g4f
-sudo systemctl restart httpd
 ```
 
-### 4. Configuração do Apache (.htaccess)
-Certifique-se que o módulo `mod_rewrite` está ativo no Apache para suportar as rotas do React (Single Page Application).
+### 3. Variáveis de Ambiente
+O sistema utiliza um arquivo `.env` para configurações sensíveis. **Este arquivo é ignorado pelo Git por segurança.** 
+Crie um arquivo `.env` na raiz com:
+```ini
+DB_HOST=localhost
+DB_NAME=glpi_reduc
+DB_USER=seu_usuario
+DB_PASS=sua_senha
+GLPI_APP_TOKEN=seu_token_aqui
+```
+
+### 4. Permissões de Pasta
+Certifique-se que o usuário `apache` tem permissão de leitura na pasta `dist` e execução nos scripts PHP em `public/api/`.
 
 ---
 
-## 🔐 Segurança e Auditoria
-O sistema utiliza **Validação Eletrônica** baseada em:
-1. Hash de senha nativo do GLPI (BCRYPT).
-2. Captura de IP e Metadados do navegador no momento da emissão.
-3. Carimbo com Timestamp e Geolocalização (via rede/GPS).
-4. SQL Injection protection via PDO Prepared Statements.
+## 🔐 Segurança
+- Autenticação via `password_verify` nativa do GLPI.
+- Proteção contra SQL Injection usando Prepared Statements (PDO).
+- Logs de auditoria embutidos no documento gerado.
+
+**Desenvolvido por Dyad AI para G4F Soluções Corporativas.**

@@ -1,52 +1,52 @@
-# PRD & Documentação de Arquitetura - Portal RDA (REDUC)
+# PRD & Documentação de Arquitetura - Portal RDA
 
-## 1. Visão Geral (Contexto Petrobras - REDUC)
-O sistema é uma camada de visualização e auditoria para o GLPI 10. Ele extrai atividades (Tickets) de colaboradores e gera um documento PDF (RDA) com validade jurídica interna através de um carimbo de validação eletrônica.
+## 1. Objetivo do Projeto
+Automatizar e digitalizar o processo de emissão do Relatório Diário de Atividade (RDA) da unidade REDUC, integrando diretamente com o banco de dados do GLPI 10 e garantindo a rastreabilidade das ações através de validação eletrônica.
 
-## 2. Requisitos Funcionais (Core)
-- **Autenticação**: Integrada com a tabela `glpi_users`. Validação via `password_verify` (BCRYPT).
-- **Dashboard de Produtividade**:
-  - Filtro por Período (baseado na tabela customizada `calendario`).
-  - Visão de Gestor (Líder/Preposto): Permite selecionar subordinados via busca inteligente.
-- **Relatório RDA (Impressão)**:
-  - Agrupamento de tickets por data.
-  - Exibição de Título e Conteúdo (limpo de HTML).
-  - Carimbo de Validação: Captura automática de IP, Navegador, Data/Hora e Geolocalização.
+## 2. Requisitos Funcionais
+
+### 2.1 Autenticação e Autorização (ACL)
+- O login é validado contra a tabela `glpi_users`.
+- **Perfis**:
+  - **Colaborador**: Vê apenas suas próprias atividades.
+  - **Líder/Preposto**: Pode visualizar e exportar RDAs de subordinados vinculados através da função `fc_leader_prepost`.
+  - **Super Usuário (glpi)**: Acesso total a todos os colaboradores do banco.
+
+### 2.2 Dashboard
+- Filtro por competência baseado na tabela `calendario` (ciclos do dia 10 ao 09).
+- Listagem de tickets agrupados por data.
+- Exibição de metadados de aprovação (Fiscal de Campo, Reporte do Colaborador, Status de Aprovação).
+
+### 2.3 Emissão de RDA (Documento)
+- Geração de layout de impressão A4 via CSS `@media print`.
+- **Carimbo de Validação**: 
+  - Captura de IP (via PHP).
+  - Geolocalização Reversa (via OpenStreetMap API).
+  - Assinatura estilizada (Dancing Script).
 
 ## 3. Arquitetura Técnica
-### Frontend (React SPA)
-- **Framework**: React 19 + TypeScript.
-- **Roteamento**: `react-router-dom` (Base: `/report`).
-- **Estado/Dados**: `TanStack Query` (React Query) para caching de chamadas API.
-- **UI**: Shadcn/UI + Tailwind CSS (Estilo corporativo azul/branco).
-- **Auth**: `AuthContext` armazena o token de sessão e metadados no `localStorage`.
 
-### Backend (PHP API)
-- **Linguagem**: PHP 8.2+.
-- **Conexão**: PDO (Prepared Statements) para segurança contra SQL Injection.
-- **Endpoints**:
-  - `login.php`: Autenticação e extração de perfil (ACL).
-  - `periods.php`: Busca meses de competência.
-  - `tickets.php`: SQL principal que une `glpi_tickets` com a regra de negócio do calendário.
-  - `subordinates.php`: Lógica de hierarquia via funções `fc_leader_prepost`.
+### 3.1 Backend (PHP API)
+- **Estrutura**: Scripts modulares em `public/api/`.
+- **db.php**: Gerencia a conexão PDO e o carregamento de variáveis de ambiente do `.env`.
+- **tickets.php**: SQL complexo que realiza JOINs entre `glpi_tickets`, `glpi_itilfollowups` e `calendario` para consolidar o relatório.
+- **subordinates.php**: Implementa a lógica de hierarquia dinâmica.
 
-## 4. Estrutura de Dados & SQL Crítico
-O projeto depende de funções específicas no banco de dados:
-1. `fc_leader_prepost(users_id, tipo)`: Retorna o nome do gestor vinculado ao usuário.
-2. `fc_manager_users(users_id)`: Retorna a gerência do usuário.
-3. `calendario`: Tabela que define os intervalos de 10 a 09 de cada mês para fechamento do RDA.
+### 3.2 Frontend (React SPA)
+- **Roteamento**: `react-router-dom` com suporte a `basename="/report"`.
+- **Estado Global**: `AuthContext` para persistência de sessão e `TanStack Query` para cache de dados.
+- **Componentes UI**: Utilização de Shadcn/UI customizado com as cores da G4F (Azul Corporativo).
 
-## 5. Lógica de Validação Eletrônica (Documento)
-O sistema utiliza o estado do navegador para garantir a integridade da assinatura:
-- **IP**: Obtido pelo servidor PHP no login (`$_SERVER['REMOTE_ADDR']`).
-- **Geo**: API `navigator.geolocation` + Reverse Geocoding (Nominatim/OSM) para obter Cidade-UF.
-- **Audit**: O documento exibe explicitamente que a validação foi feita via senha individual.
+## 4. Regras de Negócio e SQL
+O sistema depende das seguintes funções SQL implementadas no banco de dados GLPI:
+1. `fc_leader_prepost(users_id, tipo)`: Onde tipo 1=Líder e 2=Preposto.
+2. `fc_manager_users(users_id)`: Retorna a gerência/centro de custo.
+3. `fc_get_last_approval_status(ticket_id, periodo)`: Recupera o status da aprovação fiscal.
 
-## 6. Guia para Configuração de Ambiente
-O nome da unidade exibido no portal pode ser configurado via variável de ambiente:
-- **VITE_PROJECT_UNIT**: Define o nome da unidade (Ex: REDUC, Fisco, etc). Valor padrão: `REDUC`.
+## 5. Manutenção e Suporte
+- **Logs**: Erros de banco são reportados com HTTP 500 em formato JSON.
+- **Variáveis**: O nome da unidade e URLs da API podem ser alterados via arquivo `.env`.
 
 ---
-**Autor**: Dyad AI Editor
-**Data**: 2024
-**Versão**: 1.1.0 (REDUC Edition)
+**Status do Projeto**: Concluído / Em Produção
+**Versão**: 1.2.0 (Build Final REDUC)
