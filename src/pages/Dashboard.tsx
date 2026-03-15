@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { FileText, Download, LogOut, Filter, CalendarDays, Loader2, Users } from "lucide-react";
+import { FileText, Download, LogOut, Filter, CalendarDays, Loader2, Users, ShieldCheck } from "lucide-react";
 import { glpiService, TicketReport, GLPIUser } from '@/lib/glpi';
 import { showError } from '@/utils/toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,18 +24,20 @@ const Dashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
+  const isSuperUser = useMemo(() => user?.username === 'glpi', [user]);
+
   const isManager = useMemo(() => {
+    if (isSuperUser) return true;
     if (!user?.profile) return false;
     const profile = user.profile.toUpperCase();
     return profile.includes('LIDER') || profile.includes('PREPOSTO');
-  }, [user]);
+  }, [user, isSuperUser]);
 
-  // Atualiza o título da página dinamicamente
   useEffect(() => {
     if (user) {
-      document.title = `Relatório da Solução Tecnologia - G4F - Colaborador: ${user.name}`;
+      document.title = `Portal RDA - ${isSuperUser ? 'ADMIN' : user.name}`;
     }
-  }, [user]);
+  }, [user, isSuperUser]);
 
   useEffect(() => {
     const init = async () => {
@@ -48,8 +50,9 @@ const Dashboard = () => {
         setSelectedPeriod(defaultPeriod);
 
         if (isManager) {
-          const profile = user.profile.toUpperCase();
-          const role = profile.includes('PREPOSTO') ? 'Preposto' : 'Lider';
+          const profile = user.profile?.toUpperCase() || "";
+          // Se for superuser passamos 'Admin', caso contrário identificamos o papel real
+          const role = isSuperUser ? 'Admin' : (profile.includes('PREPOSTO') ? 'Preposto' : 'Lider');
           const subs = await glpiService.getSubordinates(user.id, role);
           setSubordinates(subs);
           setSelectedColaborador(user);
@@ -66,7 +69,7 @@ const Dashboard = () => {
     };
     
     init();
-  }, [user, isManager]);
+  }, [user, isManager, isSuperUser]);
 
   const loadData = async (period: string, userId: number) => {
     if (!period || !userId) return;
@@ -123,8 +126,11 @@ const Dashboard = () => {
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right hidden md:block">
-            <p className="text-sm font-bold text-slate-900">{user.name}</p>
-            <p className="text-xs text-blue-600 font-medium">{user.profile}</p>
+            <div className="flex items-center gap-1 justify-end">
+              {isSuperUser && <ShieldCheck className="w-4 h-4 text-amber-500" />}
+              <p className="text-sm font-bold text-slate-900">{user.name}</p>
+            </div>
+            <p className="text-xs text-blue-600 font-medium">{isSuperUser ? 'Administrador do Sistema' : user.profile}</p>
           </div>
           <Button variant="ghost" size="icon" onClick={logout} className="hover:text-red-600">
             <LogOut className="w-5 h-5" />
@@ -136,7 +142,7 @@ const Dashboard = () => {
         <Card className="bg-white border-none shadow-md">
           <CardHeader className="pb-3 border-b mb-4">
             <CardTitle className="text-lg flex items-center gap-2 text-slate-700">
-              <Filter className="w-4 h-4 text-blue-600" /> Parâmetros Fisco
+              <Filter className="w-4 h-4 text-blue-600" /> Parâmetros Fisco {isSuperUser && <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full ml-2 uppercase tracking-wider">Modo SuperUsuário</span>}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -156,15 +162,15 @@ const Dashboard = () => {
               {isManager && (
                 <div className="space-y-2 flex-1 w-full">
                   <Label className="flex items-center gap-2 text-slate-600 font-semibold">
-                    <Users className="w-4 h-4" /> Colaborador
+                    <Users className="w-4 h-4" /> Colaborador {isSuperUser && "(Todos)"}
                   </Label>
                   <Select value={selectedColaborador?.id.toString()} onValueChange={handleColaboradorChange}>
                     <SelectTrigger className="w-full bg-slate-50 border-blue-100">
                       <SelectValue placeholder="Selecione o colaborador" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={user.id.toString()}>{user.name}</SelectItem>
-                      {subordinates.map(sub => (
+                      <SelectItem value={user.id.toString()}>{user.name} (Eu)</SelectItem>
+                      {subordinates.filter(s => s.id !== user.id).map(sub => (
                         <SelectItem key={sub.id} value={sub.id.toString()}>{sub.name}</SelectItem>
                       ))}
                     </SelectContent>
@@ -198,7 +204,7 @@ const Dashboard = () => {
                 {loading ? (
                   <TableRow><TableCell colSpan={3} className="h-64 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-600" /></TableCell></TableRow>
                 ) : groupedData.length === 0 ? (
-                  <TableRow><TableCell colSpan={3} className="h-32 text-center text-slate-400">Nenhum chamado no período selecionado.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={3} className="h-32 text-center text-slate-400">Nenhum chamado no período selecionado para este colaborador.</TableCell></TableRow>
                 ) : groupedData.map(([date, items]) => (
                   <TableRow key={date} className="hover:bg-slate-50 align-top">
                     <TableCell className="font-bold text-slate-700 py-4">
