@@ -16,6 +16,7 @@ if (empty($user) || empty($pass)) {
 }
 
 try {
+    // Consulta simplificada para evitar falhas se as funções customizadas não existirem
     $sql = "
         SELECT
             u.id, 
@@ -25,11 +26,8 @@ try {
             u.firstname,
             e.email,
             p.chavecolaboradorfield AS chave,
-            fc_manager_users(u.id) AS gerencia,
             pr.name AS profile_name,
-            en.name AS entidade_name,
-            fc_leader_prepost(u.id, 1) AS lider,
-            fc_leader_prepost(u.id, 2) AS preposto
+            en.name AS entidade_name
         FROM glpi_users u
         LEFT JOIN glpi_useremails e ON (e.users_id = u.id AND e.is_default = 1)
         LEFT JOIN glpi_plugin_fields_useragrupamentos p ON (p.items_id = u.id)
@@ -58,36 +56,44 @@ try {
         exit;
     }
 
+    // Tenta buscar gerencia e lider separadamente para não quebrar o login se a função falhar
+    $gerencia = 'Não informada';
+    $lider = '';
+    $preposto = '';
+    
+    try {
+        $stmtMg = $pdo->prepare("SELECT fc_manager_users(?) as gerencia, fc_leader_prepost(?, 1) as lider, fc_leader_prepost(?, 2) as preposto");
+        $stmtMg->execute([$userData['id'], $userData['id'], $userData['id']]);
+        $mgData = $stmtMg->fetch();
+        if ($mgData) {
+            $gerencia = $mgData['gerencia'] ?? $gerencia;
+            $lider = $mgData['lider'] ?? '';
+            $preposto = $mgData['preposto'] ?? '';
+        }
+    } catch (Exception $e) {
+        // Ignora erro se as funções não existirem
+    }
+
     $getVal = function($val, $default) {
         return (isset($val) && trim($val) !== '') ? $val : $default;
     };
-
-    $clientIp = '0.0.0.0';
-    if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
-        $clientIp = $_SERVER['HTTP_CLIENT_IP'];
-    } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-        $ips = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
-        $clientIp = trim($ips[0]);
-    } elseif (!empty($_SERVER['REMOTE_ADDR'])) {
-        $clientIp = $_SERVER['REMOTE_ADDR'];
-    }
 
     echo json_encode([
         'id' => (int)$userData['id'],
         'name' => trim(($userData['firstname'] ?? '') . ' ' . ($userData['realname'] ?? '')),
         'chave' => $getVal($userData['chave'], $userData['name']),
         'email' => $getVal($userData['email'], 'N/A'),
-        'gerencia' => $getVal($userData['gerencia'], 'Não informada'),
+        'gerencia' => $getVal($gerencia, 'Não informada'),
         'profile' => $getVal($userData['profile_name'], 'Posto de Trabalho'),
         'entidade' => $getVal($userData['entidade_name'], 'G4F - SEDE'),
-        'lider' => $getVal($userData['lider'], ''),
-        'preposto' => $getVal($userData['preposto'], ''),
-        'ip' => $clientIp,
-        'session_token' => bin2hex(random_bytes(32))
+        'lider' => $lider,
+        'preposto' => $preposto,
+        'ip' => $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0',
+        'session_token' => bin2hex(random_bytes(16))
     ]);
 
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['error' => 'Erro interno no servidor: ' . $e->getMessage()]);
+    echo json_encode(['error' => 'Erro SQL: ' . $e->getMessage()]);
 }
 ?>
