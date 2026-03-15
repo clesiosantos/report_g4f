@@ -8,51 +8,82 @@ const ReportPrint = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [data, setData] = useState<{ tickets: TicketReport[], user: GLPIUser, period: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Tenta pegar do state da navegação
     const state = location.state as any;
-    if (!state || !state.user || !state.period) {
-      navigate('/dashboard');
-      return;
+    
+    if (state && state.user && state.period) {
+      setData(state);
+      // Agenda a impressão após o render
+      const timer = setTimeout(() => {
+        try {
+          window.print();
+        } catch (e) {
+          console.error("Erro ao abrir diálogo de impressão", e);
+        }
+      }, 1200);
+      return () => clearTimeout(timer);
+    } else {
+      // Se não houver state (ex: refresh), tenta recuperar o usuário e volta ao dashboard
+      const storedUser = localStorage.getItem('glpi_user');
+      if (!storedUser) {
+        navigate('/');
+      } else {
+        setError("Dados do relatório não encontrados. Por favor, gere o relatório novamente a partir do Dashboard.");
+        setTimeout(() => navigate('/dashboard'), 3000);
+      }
     }
-    setData(state);
-    setTimeout(() => window.print(), 1000);
   }, [location, navigate]);
 
-  // Lógica de cálculo de datas (Dia 10 a Dia 09) exclusiva para o Relatório
   const fullPeriodDates = useMemo(() => {
     if (!data?.period) return [];
     
-    const months: Record<string, number> = {
-      'JANEIRO': 0, 'FEVEREIRO': 1, 'MARÇO': 2, 'ABRIL': 3, 'MAIO': 4, 'JUNHO': 5,
-      'JULHO': 6, 'AGOSTO': 7, 'SETEMBRO': 8, 'OUTUBRO': 9, 'NOVEMBRO': 10, 'DEZEMBRO': 11
-    };
+    try {
+      const months: Record<string, number> = {
+        'JANEIRO': 0, 'FEVEREIRO': 1, 'MARÇO': 2, 'MARCO': 2, 'ABRIL': 3, 'MAIO': 4, 'JUNHO': 5,
+        'JULHO': 6, 'AGOSTO': 7, 'SETEMBRO': 8, 'OUTUBRO': 9, 'NOVEMBRO': 10, 'DEZEMBRO': 11
+      };
 
-    const parts = data.period.toUpperCase().replace('/', ' ').split(' ');
-    const monthName = parts[0];
-    const year = parseInt(parts[1]);
+      // Limpa a string do período (ex: "MARÇO/2024" ou "MARÇO 2024")
+      const cleanPeriod = data.period.toUpperCase().trim().replace('/', ' ');
+      const parts = cleanPeriod.split(/\s+/);
+      
+      if (parts.length < 2) return [];
 
-    if (months[monthName] === undefined) return [];
+      const monthName = parts[0];
+      const year = parseInt(parts[1]);
 
-    const endMonth = months[monthName];
-    // Período termina no dia 09 do mês de referência
-    const endDate = new Date(year, endMonth, 9);
-    // Período inicia no dia 10 do mês anterior
-    const startDate = new Date(year, endMonth - 1, 10);
+      if (months[monthName] === undefined || isNaN(year)) return [];
 
-    const dates = [];
-    let current = new Date(startDate);
-    while (current <= endDate) {
-      dates.push(current.toISOString().split('T')[0]);
-      current.setDate(current.getDate() + 1);
+      const endMonth = months[monthName];
+      // Período termina no dia 09 do mês de referência
+      const endDate = new Date(year, endMonth, 9);
+      // Período inicia no dia 10 do mês anterior
+      const startDate = new Date(year, endMonth - 1, 10);
+
+      const dates = [];
+      let current = new Date(startDate);
+      // Limite de segurança para evitar loops infinitos
+      let safetyCount = 0;
+      while (current <= endDate && safetyCount < 40) {
+        dates.push(current.toISOString().split('T')[0]);
+        current.setDate(current.getDate() + 1);
+        safetyCount++;
+      }
+      return dates;
+    } catch (e) {
+      console.error("Erro ao processar datas do período", e);
+      return [];
     }
-    return dates;
   }, [data]);
 
   const ticketsByDate = useMemo(() => {
-    if (!data) return {};
+    if (!data?.tickets) return {};
     const map: Record<string, TicketReport[]> = {};
     data.tickets.forEach(t => {
+      if (!t.data_criacao) return;
       const date = t.data_criacao.split(' ')[0];
       if (!map[date]) map[date] = [];
       map[date].push(t);
@@ -60,7 +91,30 @@ const ReportPrint = () => {
     return map;
   }, [data]);
 
-  if (!data || fullPeriodDates.length === 0) return null;
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
+        <div className="bg-amber-50 border border-amber-200 p-6 rounded-lg max-w-md">
+          <h2 className="text-amber-800 font-bold mb-2">Atenção</h2>
+          <p className="text-amber-700 text-sm mb-4">{error}</p>
+          <button 
+            onClick={() => navigate('/dashboard')}
+            className="bg-amber-600 text-white px-4 py-2 rounded text-sm font-medium"
+          >
+            Voltar ao Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data || fullPeriodDates.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-pulse text-slate-400">Carregando relatório...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white min-h-screen p-8 print:p-0 font-sans text-slate-900">
@@ -126,7 +180,7 @@ const ReportPrint = () => {
                     )}
                   </td>
                   <td className="border border-slate-400 p-1.5 align-top text-center font-mono">
-                    {items.map(i => `#${i.id}`).join(', ')}
+                    {items.length > 0 ? items.map(i => `#${i.id}`).join(', ') : ''}
                   </td>
                 </tr>
               );
