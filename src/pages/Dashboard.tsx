@@ -3,11 +3,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { LogOut, Filter, Loader2, Download, XCircle, CalendarClock, MessageSquare, UserCheck, Send, Check, AlertCircle } from "lucide-react";
+import { LogOut, Filter, Loader2, Download, XCircle, CalendarClock, MessageSquare, UserCheck, Send, Check, AlertCircle, Search } from "lucide-react";
 import { glpiService, TicketReport, GLPIUser } from '@/lib/glpi';
 import { showError } from '@/utils/toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,6 +18,7 @@ const Dashboard = () => {
   const [periods, setPeriods] = useState<string[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState<string>("");
   const [subordinates, setSubordinates] = useState<GLPIUser[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedColaborador, setSelectedColaborador] = useState<GLPIUser | null>(null);
   const [loading, setLoading] = useState(false);
   
@@ -71,6 +73,13 @@ const Dashboard = () => {
     }
   };
 
+  const filteredSubordinates = useMemo(() => {
+    return subordinates.filter(s => 
+      s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      s.username.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [subordinates, searchTerm]);
+
   const groupedData = useMemo(() => {
     const groups: Record<string, TicketReport[]> = {};
     tickets.forEach(ticket => {
@@ -119,27 +128,47 @@ const Dashboard = () => {
           <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Filter className="w-4 h-4 text-blue-600" /> Filtros de Visualização</CardTitle></CardHeader>
           <CardContent>
             <div className="flex flex-col md:flex-row gap-6 items-end">
-              <div className="flex-1 w-full">
+              <div className="flex-[0.5] w-full">
                 <Label>Período de Competência</Label>
                 <Select value={selectedPeriod} onValueChange={(val) => { setSelectedPeriod(val); loadData(val, selectedColaborador?.id || user.id); }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{periods.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
+              
               {isManager && (
-                <div className="flex-1 w-full">
-                  <Label>Colaborador da Equipe</Label>
-                  <Select value={selectedColaborador?.id.toString()} onValueChange={(id) => {
-                    const col = subordinates.find(s => s.id === parseInt(id)) || (id === user.id.toString() ? user : null);
-                    if (col) { setSelectedColaborador(col); loadData(selectedPeriod, col.id); }
-                  }}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={user.id.toString()}>{user.name} (Meu Perfil)</SelectItem>
-                      {subordinates.filter(s => s.id !== user.id).map(sub => <SelectItem key={sub.id} value={sub.id.toString()}>{sub.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <>
+                  <div className="flex-[0.5] w-full">
+                    <Label>Buscar Colaborador</Label>
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
+                      <Input 
+                        placeholder="Nome ou usuário..." 
+                        className="pl-9" 
+                        value={searchTerm} 
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex-1 w-full">
+                    <Label>Selecionar da Equipe</Label>
+                    <Select value={selectedColaborador?.id.toString()} onValueChange={(id) => {
+                      const col = subordinates.find(s => s.id === parseInt(id)) || (id === user.id.toString() ? user : null);
+                      if (col) { setSelectedColaborador(col); loadData(selectedPeriod, col.id); }
+                    }}>
+                      <SelectTrigger><SelectValue placeholder="Selecione um colaborador" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={user.id.toString()}>{user.name} (Meu Perfil)</SelectItem>
+                        {filteredSubordinates.filter(s => s.id !== user.id).map(sub => (
+                          <SelectItem key={sub.id} value={sub.id.toString()}>{sub.name}</SelectItem>
+                        ))}
+                        {filteredSubordinates.length === 0 && subordinates.length > 0 && (
+                          <div className="p-2 text-xs text-center text-slate-500">Nenhum resultado encontrado</div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
               )}
               <Button className="bg-blue-700 w-full md:w-auto" onClick={handleExportPDF} disabled={tickets.length === 0}><Download className="mr-2 h-4 w-4" /> Gerar Documento RDA</Button>
             </div>
@@ -167,9 +196,7 @@ const Dashboard = () => {
                     <div className="space-y-8">
                       {items.map((item, idx) => {
                         const statusRaw = (item.status_aprovacao || "").toUpperCase().trim();
-                        // Se contém "APROVAD" mas não contém "NÃO", então é positivo
                         const isApproved = statusRaw.includes('APROVAD') && !statusRaw.includes('NÃO');
-                        // Se contém "NÃO" ou "REJEITAD", então é negativo
                         const isRejected = statusRaw.includes('NÃO') || statusRaw.includes('REJEITAD');
 
                         return (
