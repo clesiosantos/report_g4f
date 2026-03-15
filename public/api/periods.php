@@ -6,8 +6,8 @@ try {
     $sql = "
         SELECT c.periodo AS PERIODO 
         FROM glpi_tickets t
-        INNER JOIN calendario c ON (DATE(IFNULL(t.solvedate, t.closedate)) = c.data)
-        WHERE t.status IN (5, 6)
+        INNER JOIN calendario c ON (DATE(COALESCE(t.solvedate, t.closedate, t.date)) = c.data)
+        WHERE t.status IN (2, 3, 4, 5, 6)
         AND t.is_deleted = 0
         AND c.periodo IS NOT NULL
         GROUP BY c.periodo

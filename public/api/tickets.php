@@ -13,7 +13,8 @@ if (empty($period) || empty($userId)) {
     exit;
 }
 
-// Consulta atualizada para incluir status 5 (Solucionado) e 6 (Fechado)
+// Consulta expandida para status 2, 3, 4, 5 e 6
+// Para chamados em aberto (2,3,4), usamos a data de criação (t.date) como fallback para o calendário
 $sql = "
     SELECT 
         t.id,
@@ -25,18 +26,21 @@ $sql = "
         fc_users_name(t.users_id_recipient) AS posto_trabalho, 
         c.periodo as periodo_avaliado,
         CASE t.status 
+            WHEN 2 THEN 'Atribuído'
+            WHEN 3 THEN 'Planejado'
+            WHEN 4 THEN 'Pendente'
             WHEN 5 THEN 'Solucionado'
             WHEN 6 THEN 'Fechado'
             ELSE 'Outro'
         END as status
     FROM glpi_tickets t
     LEFT JOIN glpi_itilcategories it ON it.id = t.itilcategories_id
-    INNER JOIN calendario c ON (DATE(IFNULL(t.solvedate, t.closedate)) = c.data)
+    INNER JOIN calendario c ON (DATE(COALESCE(t.solvedate, t.closedate, t.date)) = c.data)
     WHERE c.periodo = ?
     AND t.users_id_recipient = ?
-    AND t.status IN (5, 6)
+    AND t.status IN (2, 3, 4, 5, 6)
     AND t.is_deleted = 0
-    AND it.completename NOT REGEXP 'Justificativa'
+    AND (it.completename IS NULL OR it.completename NOT REGEXP 'Justificativa')
     ORDER BY t.date DESC
 ";
 
@@ -46,7 +50,7 @@ try {
     $results = $stmt->fetchAll();
     
     foreach ($results as &$row) {
-        $cleanDesc = html_entity_decode($row['descricao']);
+        $cleanDesc = html_entity_decode($row['descricao'] ?? '');
         $cleanDesc = strip_tags($cleanDesc);
         $row['descricao'] = trim(preg_replace('/\s+/', ' ', $cleanDesc));
     }
