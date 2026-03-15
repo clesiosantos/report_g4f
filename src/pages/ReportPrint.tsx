@@ -128,7 +128,7 @@ const ReportPrint = () => {
                 <thead>
                   <tr className="border-b border-slate-200">
                     <th className="text-left py-1 w-20">Data Atividade</th>
-                    <th className="text-left py-1">Descrição / Reporte Enviado</th>
+                    <th className="text-left py-1">Descrição / Reporte e Fluxo de Aprovação</th>
                     <th className="text-right py-1 w-24">Ticket</th>
                   </tr>
                 </thead>
@@ -139,14 +139,28 @@ const ReportPrint = () => {
                         {new Date(ticket.data_criacao.split(' ')[0] + 'T12:00:00').toLocaleDateString('pt-BR')}
                       </td>
                       <td className="py-2 align-top pr-4">
-                        <div className="font-bold text-slate-900 leading-tight mb-0.5">{ticket.titulo}</div>
-                        <div className="text-slate-600 leading-relaxed text-[8.5px] mb-1">{ticket.descricao}</div>
-                        {ticket.reporte_enviado && (
-                          <div className="mt-1.5 p-1.5 bg-slate-50 border-l-2 border-blue-400 text-slate-700 italic text-[8px] leading-snug">
-                            <span className="font-bold text-blue-700 not-italic uppercase text-[7px] block mb-0.5">Reporte do Colaborador ({new Date(ticket.data_aprovacao_solicitada || '').toLocaleDateString('pt-BR')}):</span>
-                            {ticket.reporte_enviado}
+                        <div className="font-bold text-slate-900 leading-tight mb-1">{ticket.titulo}</div>
+                        <div className="text-slate-600 leading-relaxed text-[8.5px] mb-2">{ticket.descricao}</div>
+                        
+                        {/* Box de Fluxo e Reporte no Impresso */}
+                        <div className="mt-2 p-2 bg-slate-50 border border-slate-200 rounded text-[7.5px] leading-tight space-y-1">
+                          <div className="flex justify-between items-start border-b border-slate-100 pb-1 mb-1">
+                            <div>
+                              <span className="font-bold text-blue-700 uppercase">Submissão:</span> {ticket.data_aprovacao_solicitada ? new Date(ticket.data_aprovacao_solicitada.replace(' ', 'T')).toLocaleString('pt-BR') : '-'}
+                            </div>
+                            <div className="text-right">
+                              <span className="font-bold text-slate-800 uppercase">Aprovação:</span> {ticket.status_aprovacao || 'Pendente'}
+                            </div>
                           </div>
-                        )}
+                          <div>
+                            <span className="font-bold text-slate-700 uppercase">Fiscal:</span> {ticket.fiscal_campo || 'Aguardando atribuição'}
+                          </div>
+                          {ticket.reporte_enviado && (
+                            <div className="mt-1 pt-1 border-t border-slate-200 italic text-slate-700">
+                              <span className="font-bold not-italic text-blue-800 uppercase text-[7px]">Reporte do Colaborador:</span> {ticket.reporte_enviado}
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td className="py-2 align-top text-right font-mono font-bold text-blue-800">
                         #{ticket.id}

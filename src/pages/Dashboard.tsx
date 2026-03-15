@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { LogOut, Filter, Loader2, Download, CheckCircle2, XCircle, CalendarClock, MessageSquare, UserCheck } from "lucide-react";
+import { LogOut, Filter, Loader2, Download, CheckCircle2, XCircle, CalendarClock, MessageSquare, UserCheck, Send } from "lucide-react";
 import { glpiService, TicketReport, GLPIUser } from '@/lib/glpi';
 import { showError } from '@/utils/toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -102,7 +102,7 @@ const Dashboard = () => {
     <div className="min-h-screen bg-slate-50">
       <header className="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-10 shadow-sm">
         <div className="flex items-center gap-3">
-          <img src="https://raw.githubusercontent.com/clesiosantos/glpihmg4f/main/LOGOAZUL.png" alt="Logo G4F" className="h-8 w-auto" />
+          <img src="https://raw.githubusercontent.com/clesiosantos/glpihmg4f/main/LOGOAZUL.png" alt="Logo G4F" className="h-8 v-auto" />
           <h1 className="text-xl font-bold text-slate-800">Portal RDA</h1>
         </div>
         <div className="flex items-center gap-4">
@@ -150,69 +150,80 @@ const Dashboard = () => {
           <Table>
             <TableHeader className="bg-slate-50">
               <TableRow>
-                <TableHead className="w-[110px]">Atividade</TableHead>
-                <TableHead className="w-[110px]">Submissão</TableHead>
-                <TableHead>Detalhes, Reporte e Fiscalização</TableHead>
+                <TableHead className="w-[120px]">Data Atividade</TableHead>
+                <TableHead>Atividade, Reporte e Fluxo de Aprovação</TableHead>
                 <TableHead className="text-center w-[120px]">Tickets</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={4} className="h-64 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={3} className="h-64 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" /></TableCell></TableRow>
               ) : groupedData.map(([date, items]) => (
                 <TableRow key={date} className="hover:bg-slate-50/50 transition-colors">
                   <TableCell className="font-bold py-5 align-top text-slate-700">
                     {new Date(date + 'T12:00:00').toLocaleDateString('pt-BR')}
                   </TableCell>
-                  <TableCell className="py-5 align-top">
-                    <div className="space-y-4">
-                      {items.map((item) => (
-                        <div key={item.id} className="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium">
-                          <CalendarClock className="w-3.5 h-3.5 text-blue-400" />
-                          {formatDate(item.data_aprovacao_solicitada)}
-                        </div>
-                      ))}
-                    </div>
-                  </TableCell>
                   <TableCell className="py-5">
-                    <div className="space-y-6">
+                    <div className="space-y-8">
                       {items.map((item, idx) => (
-                        <div key={item.id} className={idx > 0 ? "pt-5 border-t border-slate-100" : ""}>
-                          {/* Título e Descrição Principal */}
-                          <div>
+                        <div key={item.id} className={idx > 0 ? "pt-6 border-t border-slate-100" : ""}>
+                          {/* 1. Cabeçalho do Ticket */}
+                          <div className="mb-2">
                             <div className="font-bold text-slate-800 text-sm">{item.titulo}</div>
                             <p className="text-xs text-slate-500 mt-1 leading-relaxed">{item.descricao}</p>
                           </div>
 
-                          {/* Reporte do Colaborador */}
-                          {item.reporte_enviado && (
-                            <div className="mt-3 bg-blue-50/40 p-2.5 rounded-lg border border-blue-100/50">
-                              <div className="flex items-start gap-2">
-                                <MessageSquare className="w-3.5 h-3.5 text-blue-500 mt-0.5 flex-shrink-0" />
-                                <div className="text-[11px] text-slate-600 leading-relaxed italic">
-                                  <span className="font-bold text-blue-700 not-italic uppercase text-[9px] block mb-0.5">Reporte Enviado:</span>
-                                  {item.reporte_enviado}
+                          {/* 2. Submissão e Reporte (O que foi escrito) */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                            <div className="bg-blue-50/30 p-3 rounded-lg border border-blue-100/50">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Send className="w-3.5 h-3.5 text-blue-600" />
+                                <span className="text-[10px] font-bold text-blue-800 uppercase tracking-wider">Submissão</span>
+                              </div>
+                              <div className="space-y-1">
+                                <div className="text-[10px] text-slate-600 flex items-center gap-1">
+                                  <CalendarClock className="w-3 h-3 text-slate-400" />
+                                  <span className="font-semibold">Data:</span> {formatDate(item.data_aprovacao_solicitada)}
                                 </div>
+                                {item.reporte_enviado && (
+                                  <div className="mt-2 pt-2 border-t border-blue-100/50">
+                                    <div className="flex items-start gap-1.5">
+                                      <MessageSquare className="w-3 h-3 text-blue-400 mt-0.5" />
+                                      <p className="text-[11px] text-slate-600 italic leading-relaxed">
+                                        "{item.reporte_enviado}"
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             </div>
-                          )}
 
-                          {/* Info de Fiscalização */}
-                          <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2">
-                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase">
-                              <UserCheck className="w-3.5 h-3.5 text-slate-400" />
-                              Fiscal: <span className="text-slate-700">{item.fiscal_campo || 'Aguardando Aprovação'}</span>
-                            </div>
-                            {item.status_aprovacao && (
-                              <div className={`flex items-center gap-1.5 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${
-                                item.status_aprovacao.includes('APROVADO') 
-                                ? 'bg-green-50 text-green-700 border-green-200' 
-                                : 'bg-amber-50 text-amber-700 border-amber-200'
-                              }`}>
-                                {item.status_aprovacao.includes('APROVADO') ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                                {item.status_aprovacao}
+                            {/* 3. Fiscalização e Status */}
+                            <div className="bg-slate-50/50 p-3 rounded-lg border border-slate-200/50">
+                              <div className="flex items-center gap-2 mb-2">
+                                <UserCheck className="w-3.5 h-3.5 text-slate-600" />
+                                <span className="text-[10px] font-bold text-slate-800 uppercase tracking-wider">Fiscalização</span>
                               </div>
-                            )}
+                              <div className="space-y-2">
+                                <div className="text-[10px] text-slate-600">
+                                  <span className="font-semibold">Enviado para:</span> {item.fiscal_campo || 'Aguardando Atribuição'}
+                                </div>
+                                {item.status_aprovacao ? (
+                                  <div className={`inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full border ${
+                                    item.status_aprovacao.includes('APROVADO') 
+                                    ? 'bg-green-100 text-green-700 border-green-200 shadow-sm' 
+                                    : 'bg-amber-100 text-amber-700 border-amber-200'
+                                  }`}>
+                                    {item.status_aprovacao.includes('APROVADO') ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                                    {item.status_aprovacao}
+                                  </div>
+                                ) : (
+                                  <div className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
+                                    Pendente
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -224,7 +235,7 @@ const Dashboard = () => {
                 </TableRow>
               ))}
               {tickets.length === 0 && !loading && (
-                <TableRow><TableCell colSpan={4} className="h-48 text-center text-slate-400 font-medium italic">Nenhuma atividade registrada para o período ou colaborador selecionado.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={3} className="h-48 text-center text-slate-400 font-medium italic">Nenhuma atividade registrada para o período ou colaborador selecionado.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
