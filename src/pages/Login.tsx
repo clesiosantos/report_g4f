@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,21 +9,31 @@ import { Label } from "@/components/ui/label";
 import { LogIn } from "lucide-react";
 import { glpiService } from '@/lib/glpi';
 import { showSuccess, showError } from '@/utils/toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Login = () => {
-  const [user, setUser] = useState('');
+  const [userStr, setUserStr] = useState('');
   const [pass, setPass] = useState('');
   const [loading, setLoading] = useState(false);
+  const { login, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Se já estiver logado, redireciona para o dashboard ou para onde estava tentando ir
+  useEffect(() => {
+    if (user) {
+      const from = (location.state as any)?.from?.pathname || "/dashboard";
+      navigate(from, { replace: true });
+    }
+  }, [user, navigate, location]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const userData = await glpiService.login(user, pass);
-      localStorage.setItem('glpi_user', JSON.stringify(userData));
+      const userData = await glpiService.login(userStr, pass);
+      login(userData);
       showSuccess(`Bem-vindo, ${userData.name}!`);
-      navigate('/dashboard');
     } catch (err) {
       showError("Falha na autenticação com o GLPI.");
     } finally {
@@ -54,8 +64,8 @@ const Login = () => {
               <Input 
                 id="user" 
                 placeholder="seu.usuario" 
-                value={user}
-                onChange={(e) => setUser(e.target.value)}
+                value={userStr}
+                onChange={(e) => setUserStr(e.target.value)}
                 required 
                 className="focus-visible:ring-blue-600"
               />

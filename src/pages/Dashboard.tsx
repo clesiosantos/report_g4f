@@ -7,30 +7,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { FileText, Download, LogOut, Filter, User, CalendarDays, Loader2, CalendarRange } from "lucide-react";
-import { glpiService, TicketReport, GLPIUser } from '@/lib/glpi';
+import { FileText, Download, LogOut, Filter, CalendarDays, Loader2 } from "lucide-react";
+import { glpiService, TicketReport } from '@/lib/glpi';
 import { showError } from '@/utils/toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Dashboard = () => {
   const [tickets, setTickets] = useState<TicketReport[]>([]);
   const [periods, setPeriods] = useState<string[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState<string>("");
-  const [user, setUser] = useState<GLPIUser | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingPeriods, setLoadingPeriods] = useState(true);
   
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('glpi_user');
-    if (!storedUser) {
-      navigate('/', { replace: true });
-      return;
-    }
-    const parsedUser = JSON.parse(storedUser);
-    setUser(parsedUser);
-    
     const init = async () => {
+      if (!user) return;
       setLoadingPeriods(true);
       try {
         const availablePeriods = await glpiService.getPeriods();
@@ -38,7 +32,7 @@ const Dashboard = () => {
         if (availablePeriods.length > 0) {
           const defaultPeriod = availablePeriods[0];
           setSelectedPeriod(defaultPeriod);
-          loadData(defaultPeriod, parsedUser.id);
+          loadData(defaultPeriod);
         }
       } catch (err) {
         showError("Erro ao carregar períodos.");
@@ -48,15 +42,14 @@ const Dashboard = () => {
     };
     
     init();
-  }, [navigate]);
+  }, [user]);
 
-  const loadData = async (period: string, userId?: number) => {
-    const targetUserId = userId || user?.id;
-    if (!period || !targetUserId) return;
+  const loadData = async (period: string) => {
+    if (!period || !user) return;
     
     setLoading(true);
     try {
-      const data = await glpiService.getTickets(period, targetUserId);
+      const data = await glpiService.getTickets(period, user.id);
       setTickets(data);
     } catch (err) {
       showError("Erro ao carregar atividades.");
@@ -80,11 +73,6 @@ const Dashboard = () => {
     navigate('/print', { state: { tickets, user, period: selectedPeriod } });
   };
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/', { replace: true });
-  };
-
   if (!user) return null;
 
   return (
@@ -99,7 +87,7 @@ const Dashboard = () => {
             <p className="text-sm font-bold text-slate-900">{user.name}</p>
             <p className="text-xs text-blue-600 font-medium">{user.gerencia}</p>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleLogout} className="hover:text-red-600">
+          <Button variant="ghost" size="icon" onClick={logout} className="hover:text-red-600">
             <LogOut className="w-5 h-5" />
           </Button>
         </div>
@@ -117,7 +105,9 @@ const Dashboard = () => {
               <div className="space-y-2 flex-1 w-full">
                 <Label className="flex items-center gap-2 text-slate-600 font-semibold"><CalendarDays className="w-4 h-4" /> Período de Atividade</Label>
                 <Select value={selectedPeriod} onValueChange={(val) => { setSelectedPeriod(val); loadData(val); }}>
-                  <SelectTrigger className="w-full md:w-64 bg-slate-50"><SelectValue placeholder="Selecione o período" /></SelectTrigger>
+                  <SelectTrigger className="w-full md:w-64 bg-slate-50">
+                    <SelectValue placeholder={loadingPeriods ? "Carregando..." : "Selecione o período"} />
+                  </SelectTrigger>
                   <SelectContent>{periods.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
