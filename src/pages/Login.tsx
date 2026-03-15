@@ -19,15 +19,18 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Nome da unidade (REDUC como padrão)
+  const unitName = import.meta.env.VITE_PROJECT_UNIT || "REDUC";
+
   useEffect(() => {
     // Resetar título na tela de login
-    document.title = "Acesso - Relatório da Solução Tecnologia - G4F";
+    document.title = `Acesso - Relatório RDA - ${unitName}`;
     
     if (user) {
       const from = (location.state as any)?.from?.pathname || "/dashboard";
       navigate(from, { replace: true });
     }
-  }, [user, navigate, location]);
+  }, [user, navigate, location, unitName]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +40,7 @@ const Login = () => {
       login(userData);
       showSuccess(`Bem-vindo, ${userData.name}!`);
     } catch (err) {
-      showError("Falha na autenticação (Fisco).");
+      showError(`Falha na autenticação (${unitName}).`);
     } finally {
       setLoading(false);
     }
@@ -55,7 +58,7 @@ const Login = () => {
             />
           </div>
           <div className="text-center space-y-1">
-            <CardTitle className="text-2xl font-bold text-slate-800">Portal RDA - Fisco</CardTitle>
+            <CardTitle className="text-2xl font-bold text-slate-800">Portal RDA - {unitName}</CardTitle>
             <CardDescription>Acesse com suas credenciais do GLPI</CardDescription>
           </div>
         </CardHeader>
