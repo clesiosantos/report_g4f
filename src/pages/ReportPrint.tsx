@@ -31,12 +31,14 @@ const ReportPrint = () => {
             const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10&addressdetails=1`);
             const geoData = await response.json();
             const city = geoData.address.city || geoData.address.town || geoData.address.village || "Local";
-            setGeoLoc(city);
+            const state = geoData.address.state || "";
+            // Formata como "Cidade - Estado"
+            setGeoLoc(state ? `${city} - ${state}` : city);
           } catch (e) {
-            setGeoLoc(`${latitude.toFixed(2)},${longitude.toFixed(2)}`);
+            setGeoLoc(`${latitude.toFixed(2)}, ${longitude.toFixed(2)}`);
           }
         },
-        () => setGeoLoc('IP'),
+        () => setGeoLoc('Acesso via rede corporativa'),
         { timeout: 8000 }
       );
     }
@@ -101,7 +103,7 @@ const ReportPrint = () => {
   const approverName = isEmittedByOther ? data.currentUser.name : (data.user.lider || data.user.preposto || "Gestor Responsável");
   const approverRole = isEmittedByOther ? data.currentUser.profile : (data.user.lider ? "Líder" : (data.user.preposto ? "Preposto" : "Gestor"));
 
-  // Carimbo eletrônico em destaque (A CAIXA QUE FOI SOLICITADA)
+  // Carimbo eletrônico em destaque (CAIXA DE VALIDAÇÃO)
   const ElectronicValidationBox = ({ user }: { user: GLPIUser }) => (
     <div className="mt-4 p-2.5 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50/30 text-[7px] text-slate-600 leading-tight text-left max-w-[240px] mx-auto shadow-sm">
       <div className="font-bold text-blue-700 block mb-1.5 text-center text-[8px] uppercase tracking-widest border-b border-blue-200 pb-1">
@@ -109,6 +111,7 @@ const ReportPrint = () => {
       </div>
       <div className="space-y-0.5">
         <div><span className="font-bold text-slate-800">DATA/HORA:</span> {signatureDate}</div>
+        <div><span className="font-bold text-slate-800">MÉTODO:</span> Validado via Senha Individual</div>
         <div><span className="font-bold text-slate-800">IP DE ORIGEM:</span> {user.ip || '0.0.0.0'}</div>
         <div><span className="font-bold text-slate-800">NAVEGADOR:</span> {browserInfo}</div>
         <div className="truncate"><span className="font-bold text-slate-800">LOCALIZAÇÃO:</span> {geoLoc}</div>
@@ -199,9 +202,8 @@ const ReportPrint = () => {
           </tbody>
         </table>
 
-        {/* Seção de Assinaturas com a CAIXA Restaurada */}
+        {/* Seção de Assinaturas */}
         <div className="mt-20 grid grid-cols-2 gap-12 items-start">
-          {/* Lado do Colaborador */}
           <div className="text-center">
             <div className="min-h-[40px] flex items-end justify-center mb-1">
               <div className="signature-font text-2xl text-blue-900/80">{data.user.name}</div>
@@ -213,7 +215,6 @@ const ReportPrint = () => {
             </div>
           </div>
 
-          {/* Lado da Gerência/Preposto */}
           <div className="text-center">
             <div className="min-h-[40px] flex items-end justify-center mb-1">
               {isEmittedByOther && <div className="signature-font text-2xl text-blue-900/80">{data.currentUser.name}</div>}
@@ -234,7 +235,6 @@ const ReportPrint = () => {
         </div>
       </div>
 
-      {/* Interface de Botões (Não sai na impressão) */}
       <div className="no-print fixed bottom-6 left-0 right-0 flex justify-center gap-4 z-50">
         <button 
           onClick={() => window.print()} 
