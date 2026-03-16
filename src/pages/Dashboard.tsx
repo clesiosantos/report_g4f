@@ -7,10 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { FileText, Download, LogOut, Filter, CalendarDays, Loader2, Users, AlertCircle } from "lucide-react";
+import { FileText, Download, LogOut, Filter, CalendarDays, Loader2, Users, AlertCircle, ExternalLink } from "lucide-react";
 import { glpiService, TicketReport, GLPIUser } from '@/lib/glpi';
 import { showError } from '@/utils/toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { cn } from '@/lib/utils';
 
 const Dashboard = () => {
   const [tickets, setTickets] = useState<TicketReport[]>([]);
@@ -77,9 +78,6 @@ const Dashboard = () => {
     }
   };
 
-  /**
-   * Lógica idêntica ao ReportPrint para garantir que todos os dias (10 a 09) apareçam
-   */
   const fullPeriodDates = useMemo(() => {
     if (!selectedPeriod) return [];
     try {
@@ -108,7 +106,7 @@ const Dashboard = () => {
         dates.push(current.toISOString().split('T')[0]);
         current.setDate(current.getDate() + 1);
       }
-      return dates.reverse(); // Mais recente primeiro no Dashboard
+      return dates.reverse();
     } catch (e) { return []; }
   }, [selectedPeriod]);
 
@@ -121,6 +119,15 @@ const Dashboard = () => {
     });
     return map;
   }, [tickets]);
+
+  const getStatusClasses = (status: string) => {
+    const s = status.toLowerCase();
+    if (s.includes('atribuído') || s.includes('atribuido')) return "bg-blue-600 text-white border-blue-700";
+    if (s.includes('pendente')) return "bg-amber-500 text-white border-amber-600";
+    if (s.includes('solucionado')) return "bg-emerald-600 text-white border-emerald-700";
+    if (s.includes('fechado')) return "bg-slate-900 text-white border-black";
+    return "bg-slate-100 text-slate-600 border-slate-200";
+  };
 
   const handleExportPDF = () => {
     if (!selectedPeriod || !selectedColaborador || !user) return;
@@ -203,7 +210,7 @@ const Dashboard = () => {
                 <TableRow>
                   <TableHead className="w-[140px] font-bold">Data / Dia</TableHead>
                   <TableHead className="font-bold">Atividades (Classificadas no Período)</TableHead>
-                  <TableHead className="w-[120px] font-bold text-center">Referência</TableHead>
+                  <TableHead className="w-[150px] font-bold text-center">Tickets (GLPI)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -225,16 +232,19 @@ const Dashboard = () => {
                       </TableCell>
                       <TableCell className="py-4">
                         {dayItems.length > 0 ? (
-                          <div className="space-y-3">
+                          <div className="space-y-4">
                             {dayItems.map((item, idx) => (
-                              <div key={item.id} className={idx > 0 ? "pt-2 border-t border-slate-100" : ""}>
-                                <div className="font-bold text-sm text-slate-800 flex justify-between items-start">
-                                  {item.titulo}
-                                  <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 ml-2 whitespace-nowrap">
+                              <div key={item.id} className={idx > 0 ? "pt-3 border-t border-slate-100" : ""}>
+                                <div className="flex justify-between items-start gap-3">
+                                  <div className="font-bold text-sm text-slate-800 flex-1">{item.titulo}</div>
+                                  <span className={cn(
+                                    "text-[9px] font-bold uppercase px-2 py-0.5 rounded border shadow-sm whitespace-nowrap",
+                                    getStatusClasses(item.status)
+                                  )}>
                                     {item.status}
                                   </span>
                                 </div>
-                                <div className="text-xs text-slate-500 italic mt-1 leading-relaxed">{item.descricao}</div>
+                                <div className="text-xs text-slate-500 italic mt-1.5 leading-relaxed">{item.descricao}</div>
                               </div>
                             ))}
                           </div>
@@ -244,12 +254,22 @@ const Dashboard = () => {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="py-4 text-center">
-                        <div className="flex flex-wrap justify-center gap-1">
+                      <TableCell className="py-4">
+                        <div className="flex flex-wrap justify-center gap-1.5">
                           {dayItems.map(item => (
-                            <span key={item.id} className="text-[10px] font-mono font-bold px-1 py-0.5 bg-blue-50 text-blue-700 rounded border border-blue-100">#{item.id}</span>
+                            <a 
+                              key={item.id} 
+                              href={`https://fisco.g4f.sharksolucoes.com.br/front/ticket.form.php?id=${item.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="group flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-1 bg-blue-50 text-blue-700 rounded border border-blue-200 hover:bg-blue-700 hover:text-white hover:border-blue-800 transition-all shadow-sm"
+                              title={`Abrir ticket #${item.id} no GLPI`}
+                            >
+                              #{item.id}
+                              <ExternalLink className="w-2 h-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </a>
                           ))}
-                          {dayItems.length === 0 && <span className="text-slate-200">-</span>}
+                          {dayItems.length === 0 && <span className="text-slate-200 text-xs">-</span>}
                         </div>
                       </TableCell>
                     </TableRow>
