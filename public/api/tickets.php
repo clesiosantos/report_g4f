@@ -13,8 +13,7 @@ if (empty($period) || empty($userId)) {
     exit;
 }
 
-// Consulta expandida para status 2, 3, 4, 5 e 6
-// Para chamados em aberto (2,3,4), usamos a data de criação (t.date) como fallback para o calendário
+// c.data é a data real do calendário (ex: 2026-03-09)
 $sql = "
     SELECT 
         t.id,
@@ -22,6 +21,7 @@ $sql = "
         t.content as descricao,
         t.date as data_criacao,
         IFNULL(t.solvedate, t.closedate) as data_solucao,
+        c.data as data_referencia,
         it.completename as servico,
         fc_users_name(t.users_id_recipient) AS posto_trabalho, 
         c.periodo as periodo_avaliado,

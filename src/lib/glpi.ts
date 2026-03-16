@@ -6,6 +6,7 @@ export interface TicketReport {
   descricao: string;
   data_criacao: string;
   data_solucao: string;
+  data_referencia: string; // Adicionado para agrupamento preciso
   servico: string;
   posto_trabalho: string;
   gerencia_origem: string;
@@ -17,9 +18,9 @@ export interface TicketReport {
 
 export interface GLPIUser {
   id: number;
-  name: string;      // Nome Completo
-  username: string;  // Login (u.name)
-  chave: string;     // Chave do Colaborador
+  name: string;      
+  username: string;  
+  chave: string;     
   email: string;
   gerencia: string;
   profile: string;
@@ -32,7 +33,6 @@ export interface GLPIUser {
 
 export const glpiService = {
   async login(user: string, pass: string): Promise<GLPIUser> {
-    // Usamos caminhos relativos ao diretório atual para evitar problemas com subpastas
     const response = await fetch('api/login.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
