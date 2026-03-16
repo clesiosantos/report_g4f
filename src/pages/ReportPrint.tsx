@@ -100,7 +100,7 @@ const ReportPrint = () => {
         <div className="flex justify-between items-center border-b-2 border-slate-800 pb-2 mb-4">
           <div className="space-y-0.5">
             <h1 className="text-md font-bold uppercase tracking-tight">Relatório Diário de Atividade - RDA</h1>
-            <p className="text-[9px] font-semibold text-slate-600">Contrato: XXXXX - G4F SOLUCOES CORPORATIVAS LTDA</p>
+            <p className="text-[9px] font-semibold text-slate-600">Contrato: 5900.0127144.24.2 - G4F SOLUCOES CORPORATIVAS LTDA</p>
           </div>
           <img src="https://raw.githubusercontent.com/clesiosantos/glpihmg4f/main/LOGOAZUL.png" alt="Logo" className="h-8 w-auto" />
         </div>
