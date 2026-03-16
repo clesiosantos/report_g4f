@@ -13,7 +13,7 @@ if (empty($period) || empty($userId)) {
     exit;
 }
 
-// c.data é a data real do calendário (ex: 2026-03-09)
+// Vinculação agora é feita EXCLUSIVAMENTE pela data de criação (t.date)
 $sql = "
     SELECT 
         t.id,
@@ -35,7 +35,7 @@ $sql = "
         END as status
     FROM glpi_tickets t
     LEFT JOIN glpi_itilcategories it ON it.id = t.itilcategories_id
-    INNER JOIN calendario c ON (DATE(COALESCE(t.solvedate, t.closedate, t.date)) = c.data)
+    INNER JOIN calendario c ON (DATE(t.date) = c.data)
     WHERE c.periodo = ?
     AND t.users_id_recipient = ?
     AND t.status IN (2, 3, 4, 5, 6)

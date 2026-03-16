@@ -54,9 +54,6 @@ const ReportPrint = () => {
     }
   }, [location, navigate]);
 
-  /**
-   * ESTA É A LÓGICA DO ARRAY DE DATAS (10 A 09)
-   */
   const fullPeriodDates = useMemo(() => {
     if (!data?.period) return [];
     try {
@@ -64,15 +61,11 @@ const ReportPrint = () => {
         'JANEIRO': 0, 'FEVEREIRO': 1, 'MARÇO': 2, 'MARCO': 2, 'ABRIL': 3, 'MAIO': 4, 'JUNHO': 5,
         'JULHO': 6, 'AGOSTO': 7, 'SETEMBRO': 8, 'OUTUBRO': 9, 'NOVEMBRO': 10, 'DEZEMBRO': 11
       };
-
-      // 1. Limpa a string do período (ex: "FEVEREIRO / 2024")
       const rawPeriod = data.period.toUpperCase().trim();
       const parts = rawPeriod.split(/[\s\-/]+/).filter(p => p.length > 0);
-      
       let monthIndex: number | null = null;
       let yearValue: number | null = null;
 
-      // 2. Identifica qual é o mês e qual é o ano
       parts.forEach(part => {
         if (monthsMap[part] !== undefined) monthIndex = monthsMap[part];
         else if (!isNaN(parseInt(part)) && part.length === 4) yearValue = parseInt(part);
@@ -80,20 +73,16 @@ const ReportPrint = () => {
 
       if (monthIndex === null || yearValue === null) return [];
 
-      // 3. Define as balizas: Fim é dia 09 do mês atual, Início é dia 10 do mês anterior
       const endDate = new Date(yearValue, monthIndex, 9);
       const startDate = new Date(yearValue, monthIndex - 1, 10);
-      
       const dates = [];
       let current = new Date(startDate);
 
-      // 4. Cria o array "enchendo" todos os dias entre as datas
       while (current <= endDate) {
-        dates.push(current.toISOString().split('T')[0]); // Formato YYYY-MM-DD
+        dates.push(current.toISOString().split('T')[0]);
         current.setDate(current.getDate() + 1);
       }
-      
-      return dates; // Retorna ex: ["2024-01-10", "2024-01-11", ..., "2024-02-09"]
+      return dates;
     } catch (e) { return []; }
   }, [data]);
 
@@ -101,7 +90,8 @@ const ReportPrint = () => {
     if (!data?.tickets) return {};
     const map: Record<string, TicketReport[]> = {};
     data.tickets.forEach(t => {
-      const date = t.data_criacao.split(' ')[0];
+      // Agora usa exclusivamente a data_referencia (vinculada ao ticket.date no SQL)
+      const date = t.data_referencia || t.data_criacao.split(' ')[0];
       if (!map[date]) map[date] = [];
       map[date].push(t);
     });
