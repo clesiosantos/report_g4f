@@ -32,7 +32,6 @@ const ReportPrint = () => {
             const geoData = await response.json();
             const city = geoData.address.city || geoData.address.town || geoData.address.village || "Local";
             const state = geoData.address.state || "";
-            // Formata como "Cidade - Estado"
             setGeoLoc(state ? `${city} - ${state}` : city);
           } catch (e) {
             setGeoLoc(`${latitude.toFixed(2)}, ${longitude.toFixed(2)}`);
@@ -55,6 +54,9 @@ const ReportPrint = () => {
     }
   }, [location, navigate]);
 
+  /**
+   * ESTA É A LÓGICA DO ARRAY DE DATAS (10 A 09)
+   */
   const fullPeriodDates = useMemo(() => {
     if (!data?.period) return [];
     try {
@@ -62,11 +64,15 @@ const ReportPrint = () => {
         'JANEIRO': 0, 'FEVEREIRO': 1, 'MARÇO': 2, 'MARCO': 2, 'ABRIL': 3, 'MAIO': 4, 'JUNHO': 5,
         'JULHO': 6, 'AGOSTO': 7, 'SETEMBRO': 8, 'OUTUBRO': 9, 'NOVEMBRO': 10, 'DEZEMBRO': 11
       };
+
+      // 1. Limpa a string do período (ex: "FEVEREIRO / 2024")
       const rawPeriod = data.period.toUpperCase().trim();
       const parts = rawPeriod.split(/[\s\-/]+/).filter(p => p.length > 0);
+      
       let monthIndex: number | null = null;
       let yearValue: number | null = null;
 
+      // 2. Identifica qual é o mês e qual é o ano
       parts.forEach(part => {
         if (monthsMap[part] !== undefined) monthIndex = monthsMap[part];
         else if (!isNaN(parseInt(part)) && part.length === 4) yearValue = parseInt(part);
@@ -74,15 +80,20 @@ const ReportPrint = () => {
 
       if (monthIndex === null || yearValue === null) return [];
 
+      // 3. Define as balizas: Fim é dia 09 do mês atual, Início é dia 10 do mês anterior
       const endDate = new Date(yearValue, monthIndex, 9);
       const startDate = new Date(yearValue, monthIndex - 1, 10);
+      
       const dates = [];
       let current = new Date(startDate);
+
+      // 4. Cria o array "enchendo" todos os dias entre as datas
       while (current <= endDate) {
-        dates.push(current.toISOString().split('T')[0]);
+        dates.push(current.toISOString().split('T')[0]); // Formato YYYY-MM-DD
         current.setDate(current.getDate() + 1);
       }
-      return dates;
+      
+      return dates; // Retorna ex: ["2024-01-10", "2024-01-11", ..., "2024-02-09"]
     } catch (e) { return []; }
   }, [data]);
 
@@ -103,7 +114,6 @@ const ReportPrint = () => {
   const approverName = isEmittedByOther ? data.currentUser.name : (data.user.lider || data.user.preposto || "Gestor Responsável");
   const approverRole = isEmittedByOther ? data.currentUser.profile : (data.user.lider ? "Líder" : (data.user.preposto ? "Preposto" : "Gestor"));
 
-  // Carimbo eletrônico em destaque (CAIXA DE VALIDAÇÃO)
   const ElectronicValidationBox = ({ user }: { user: GLPIUser }) => (
     <div className="mt-4 p-2.5 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50/30 text-[7px] text-slate-600 leading-tight text-left max-w-[240px] mx-auto shadow-sm">
       <div className="font-bold text-blue-700 block mb-1.5 text-center text-[8px] uppercase tracking-widest border-b border-blue-200 pb-1">
@@ -136,7 +146,6 @@ const ReportPrint = () => {
       `}} />
       
       <div className="max-w-[210mm] mx-auto">
-        {/* Cabeçalho */}
         <div className="flex justify-between items-center border-b-2 border-slate-800 pb-2 mb-4">
           <div className="space-y-0.5">
             <h1 className="text-md font-bold uppercase tracking-tight">Relatório Diário de Atividade - RDA</h1>
@@ -145,7 +154,6 @@ const ReportPrint = () => {
           <img src="https://raw.githubusercontent.com/clesiosantos/glpihmg4f/main/LOGOAZUL.png" alt="Logo" className="h-8 w-auto" />
         </div>
 
-        {/* Informações do Colaborador */}
         <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-[9px] border border-slate-300 p-3 rounded mb-4 bg-slate-50/20">
           <div className="border-b border-slate-100"><span className="font-bold">COLABORADOR:</span> {data.user.name}</div>
           <div className="border-b border-slate-100"><span className="font-bold">NOME DE USUÁRIO:</span> {data.user.username}</div>
@@ -159,7 +167,6 @@ const ReportPrint = () => {
           </div>
         </div>
 
-        {/* Tabela de Atividades */}
         <table className="w-full text-[8.5px] border-collapse border border-slate-400">
           <thead>
             <tr className="bg-slate-100/80">
@@ -202,7 +209,6 @@ const ReportPrint = () => {
           </tbody>
         </table>
 
-        {/* Seção de Assinaturas */}
         <div className="mt-20 grid grid-cols-2 gap-12 items-start">
           <div className="text-center">
             <div className="min-h-[40px] flex items-end justify-center mb-1">
@@ -228,7 +234,6 @@ const ReportPrint = () => {
           </div>
         </div>
 
-        {/* Rodapé Final */}
         <div className="mt-12 pt-4 border-t border-slate-200 text-[8px] text-slate-400 flex justify-between italic">
           <span>Relatório gerado via Portal RDA - G4F SOLUÇÕES</span>
           <span className="font-bold uppercase tracking-widest">Documento Interno</span>
@@ -236,18 +241,8 @@ const ReportPrint = () => {
       </div>
 
       <div className="no-print fixed bottom-6 left-0 right-0 flex justify-center gap-4 z-50">
-        <button 
-          onClick={() => window.print()} 
-          className="bg-blue-600 text-white px-8 py-2.5 rounded-full font-bold shadow-2xl hover:bg-blue-700 transition-all text-sm flex items-center gap-2"
-        >
-          Imprimir RDA
-        </button>
-        <button 
-          onClick={() => navigate('/dashboard')} 
-          className="bg-white border border-slate-300 text-slate-700 px-8 py-2.5 rounded-full font-bold shadow-lg hover:bg-slate-50 transition-all text-sm"
-        >
-          Voltar ao Dashboard
-        </button>
+        <button onClick={() => window.print()} className="bg-blue-600 text-white px-8 py-2.5 rounded-full font-bold shadow-2xl hover:bg-blue-700 transition-all text-sm flex items-center gap-2">Imprimir RDA</button>
+        <button onClick={() => navigate('/dashboard')} className="bg-white border border-slate-300 text-slate-700 px-8 py-2.5 rounded-full font-bold shadow-lg hover:bg-slate-50 transition-all text-sm">Voltar ao Dashboard</button>
       </div>
     </div>
   );
