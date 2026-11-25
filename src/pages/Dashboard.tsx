@@ -178,8 +178,8 @@ const Dashboard = () => {
 
         <Card className="border-none shadow-lg overflow-hidden bg-white">
           <CardContent className="p-0">
-            <Table>
-              <TableHeader className="bg-slate-50">
+            <Table className="border-collapse">
+              <TableHeader className="bg-slate-100">
                 <TableRow>
                   <TableHead className="w-[140px] font-bold">Data / Dia</TableHead>
                   <TableHead className="font-bold">Atividades (Classificadas no Período)</TableHead>
@@ -196,10 +196,10 @@ const Dashboard = () => {
                   const dateObj = new Date(date + 'T12:00:00');
                   
                   return (
-                    <TableRow key={date} className="hover:bg-slate-50 align-top">
-                      <TableCell className="font-bold text-slate-700 py-4">
+                    <TableRow key={date} className="hover:bg-slate-50 align-top border-b border-slate-300">
+                      <TableCell className="font-bold text-slate-800 py-4 align-top">
                         {dateObj.toLocaleDateString('pt-BR')}<br/>
-                        <span className="text-[10px] text-slate-400 font-normal capitalize">
+                        <span className="text-xs text-slate-600 font-normal capitalize">
                           {dateObj.toLocaleDateString('pt-BR', { weekday: 'long' })}
                         </span>
                       </TableCell>
@@ -207,7 +207,7 @@ const Dashboard = () => {
                         {dayItems.length > 0 ? (
                           <div className="space-y-4">
                             {dayItems.map((item, idx) => (
-                              <div key={item.id} className={idx > 0 ? "pt-3 border-t border-slate-100" : ""}>
+                              <div key={item.id} className={idx > 0 ? "pt-3 border-t border-slate-300" : ""}>
                                 <div className="flex justify-between items-start gap-3">
                                   <div className="font-bold text-sm text-slate-800 flex-1">{item.titulo}</div>
                                   <span className={cn(
@@ -217,12 +217,12 @@ const Dashboard = () => {
                                     {item.status}
                                   </span>
                                 </div>
-                                <div className="text-xs text-slate-500 italic mt-1.5 leading-relaxed">{item.descricao}</div>
+                                <div className="text-sm text-slate-800 mt-2 leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">{item.descricao}</div>
                               </div>
                             ))}
                           </div>
                         ) : (
-                          <div className="flex items-center gap-2 text-slate-300 italic text-sm py-2">
+                          <div className="flex items-center gap-2 text-slate-500 text-sm py-2">
                             <AlertCircle className="w-3 h-3" /> Sem lançamentos registrados
                           </div>
                         )}

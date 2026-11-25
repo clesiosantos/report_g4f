@@ -54,9 +54,19 @@ try {
     $results = $stmt->fetchAll();
     
     foreach ($results as &$row) {
-        $cleanDesc = html_entity_decode($row['descricao'] ?? '');
+        // Preserva paragrafos, listas e quebras de linha do GLPI sem renderizar HTML.
+        $cleanDesc = html_entity_decode((string)($row['descricao'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $cleanDesc = preg_replace('~<(script|style)\b[^>]*>.*?</\1\s*>~is', '', $cleanDesc);
+        $cleanDesc = preg_replace('~<br\b[^>]*>~i', "\n", $cleanDesc);
+        $cleanDesc = preg_replace('~<li\b[^>]*>~i', "\n• ", $cleanDesc);
+        $cleanDesc = preg_replace('~</?(?:p|div|section|article|h[1-6]|blockquote|ul|ol|tr|pre)\b[^>]*>|</li\s*>~i', "\n", $cleanDesc);
         $cleanDesc = strip_tags($cleanDesc);
-        $row['descricao'] = trim(preg_replace('/\s+/', ' ', $cleanDesc));
+        $cleanDesc = html_entity_decode($cleanDesc, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $cleanDesc = str_replace(["\r\n", "\r", "\u{00A0}"], ["\n", "\n", ' '], $cleanDesc);
+        $cleanDesc = preg_replace('/[ \t]+/u', ' ', $cleanDesc);
+        $cleanDesc = preg_replace('/ *\n */u', "\n", $cleanDesc);
+        $cleanDesc = preg_replace('/\n{3,}/', "\n\n", $cleanDesc);
+        $row['descricao'] = trim($cleanDesc);
     }
     
     echo json_encode($results);
