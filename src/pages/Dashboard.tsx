@@ -11,7 +11,7 @@ import { FileText, Download, LogOut, Filter, CalendarDays, Loader2, Users, Alert
 import { glpiService, TicketReport, GLPIUser } from '@/lib/glpi';
 import { getPeriodDates } from '@/lib/period';
 import { getIssueLocation } from '@/lib/issueLocation';
-import { showError } from '@/utils/toast';
+import { showError, showSuccess } from '@/utils/toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
@@ -112,6 +112,7 @@ const Dashboard = () => {
     try {
       const location = await getIssueLocation();
       const record = await glpiService.issueRDA(selectedColaborador.id, selectedPeriod, location);
+      showSuccess(record.reused ? 'Conteúdo sem alterações: versão ' + record.revision + ' reutilizada.' : 'Nova versão ' + record.revision + ' registrada.');
       navigate('/print?code=' + record.snapshot.code, { state: { autoPrint: true } });
     } catch (err) {
       showError(err instanceof Error ? err.message : 'Não foi possível registrar a emissão.');
@@ -184,6 +185,7 @@ const Dashboard = () => {
                 <Button variant="outline" className="flex gap-2" onClick={handleExportPDF} disabled={issuing || !selectedPeriod || loading || loadedSelection !== `${selectedPeriod}:${selectedColaborador?.id}`}>
                   {issuing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} {issuing ? "Registrando..." : "Gerar RDA"}
                 </Button>
+                <Button variant="outline" disabled={!selectedPeriod || !selectedColaborador || issuing} onClick={() => navigate("/historico?" + new URLSearchParams({ user_id: String(selectedColaborador?.id), period: selectedPeriod }))}>Histórico de emissões</Button>
               </div>
             </div>
           </CardContent>

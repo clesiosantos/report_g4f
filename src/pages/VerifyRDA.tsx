@@ -27,6 +27,8 @@ export default function VerifyRDA() {
           <h2 className="text-green-800 font-bold">Registro de emissão localizado e íntegro</h2>
           <p><b>Contrato:</b> {proof.contract}</p>
           <p><b>Competência:</b> {proof.period}</p>
+          <p><b>Versão:</b> {proof.revision} de {proof.latest_revision}</p>
+          <p className={proof.revision === proof.latest_revision ? 'text-green-800 font-semibold' : 'text-amber-800 font-semibold'}>{proof.revision === proof.latest_revision ? 'Última versão emitida' : 'Versão anterior — existe uma emissão posterior. O registro continua íntegro.'}</p>
           <p><b>Emissão (Brasília):</b> {new Date(proof.issued_at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</p>
           <p><b>Chamados registrados:</b> {proof.ticket_count}</p>
           <p><b>Código:</b> <span className="font-mono break-all">{proof.code}</span></p>

@@ -11,7 +11,8 @@ try {
     echo json_encode([
         'code' => $s['code'], 'contract' => $s['contract'],
         'issued_at' => $s['issued_at'], 'period' => $s['period'],
-        'ticket_count' => count($s['tickets']), 'sha256' => $record['sha256']
+        'ticket_count' => count($s['tickets']), 'sha256' => $record['sha256'],
+        'revision' => $record['revision'], 'latest_revision' => $record['latest_revision']
     ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 } catch (Throwable $e) {
     error_log('RDA Tec: falha na verificacao.');

@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import ReportPrint from "./pages/ReportPrint";
 import NotFound from "./pages/NotFound";
 import VerifyRDA from "./pages/VerifyRDA";
+import RDAHistory from "./pages/RDAHistory";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,7 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
+            <Route path="/historico" element={<ProtectedRoute><RDAHistory /></ProtectedRoute>} />
             <Route path="/validar" element={<VerifyRDA />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

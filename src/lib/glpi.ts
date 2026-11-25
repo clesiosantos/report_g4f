@@ -45,11 +45,21 @@ export interface RDAEmission {
   browser: string;
   location: string;
 }
-export interface RDARecord { snapshot: RDAEmission; sha256: string }
+export interface RDARecord { snapshot: RDAEmission; sha256: string; hash_conteudo: string; revision: number; latest_revision: number; reused?: boolean }
 export interface RDAProof {
   code: string; contract: string; issued_at: string; period: string;
-  ticket_count: number; sha256: string;
+  ticket_count: number; sha256: string; revision: number; latest_revision: number;
 }
+
+export interface RDAHistoryItem {
+  code: string; issued_at: string; issuer: string; issuer_profile: string;
+  ticket_count: number; event_count: number; revision: number; latest_revision: number;
+}
+export interface RDAEvent {
+  evento: 'EMISSAO' | 'REUTILIZACAO' | 'REIMPRESSAO_SOLICITADA';
+  occurred_at: string; usuario_nome: string; usuario_login: string; perfil: string;
+}
+export interface RDAPage<T> { items: T[]; total: number; page: number; page_size: number }
 
 const api = `${import.meta.env.BASE_URL}api/`;
 async function rdaResponse<T>(response: Response): Promise<T> {
@@ -59,6 +69,19 @@ async function rdaResponse<T>(response: Response): Promise<T> {
 }
 
 export const glpiService = {
+  async getRDAHistory(userId: number, period: string, page = 1): Promise<RDAPage<RDAHistoryItem>> {
+    return rdaResponse(await fetch(api + 'history.php?' + new URLSearchParams({ user_id: String(userId), period, page: String(page) })));
+  },
+  async getRDAEvents(code: string, page = 1): Promise<RDAPage<RDAEvent>> {
+    return rdaResponse(await fetch(api + 'history.php?' + new URLSearchParams({ code, page: String(page) })));
+  },
+  async registerReprint(code: string): Promise<void> {
+    await rdaResponse(await fetch(api + 'issue.php', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'reprint', code })
+    }));
+  },
+
   async issueRDA(userId: number, period: string, location: string): Promise<RDARecord> {
     return rdaResponse<RDARecord>(await fetch(api + 'issue.php', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },

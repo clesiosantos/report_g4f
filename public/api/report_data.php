@@ -92,7 +92,7 @@ function rda_code($value): string {
 }
 
 function rda_find(PDO $pdo, string $code): array {
-    $stmt = $pdo->prepare('SELECT codigo, colaborador_id, snapshot_json, sha256 FROM rda_emissoes WHERE codigo = ?');
+    $stmt = $pdo->prepare('SELECT id, codigo, colaborador_id, competencia, snapshot_json, sha256 FROM rda_emissoes WHERE codigo = ?');
     $stmt->execute([$code]);
     $row = $stmt->fetch();
     if (!$row) report_error(404, 'Codigo de autenticidade nao encontrado.');
@@ -103,5 +103,36 @@ function rda_find(PDO $pdo, string $code): array {
     if (($snapshot['code'] ?? '') !== $code || (int)($snapshot['user']['id'] ?? 0) !== (int)$row['colaborador_id']) {
         report_error(409, 'Registro com divergencia de integridade.');
     }
-    return ['snapshot' => $snapshot, 'sha256' => $row['sha256']];
+    $contentHash = rda_content_hash($snapshot);
+    if (isset($snapshot['hash_conteudo']) && !hash_equals($snapshot['hash_conteudo'], $contentHash)) {
+        report_error(409, 'Registro com divergencia de conteudo.');
+    }
+    $stmt = $pdo->prepare('SELECT COUNT(*) AS latest_revision, COALESCE(SUM(id <= ?), 0) AS revision
+        FROM rda_emissoes WHERE colaborador_id = ? AND competencia = ?');
+    $stmt->execute([$row['id'], $row['colaborador_id'], $row['competencia']]);
+    $versions = $stmt->fetch();
+    return ['snapshot' => $snapshot, 'sha256' => $row['sha256'], 'hash_conteudo' => $contentHash,
+        'revision' => (int)$versions['revision'], 'latest_revision' => (int)$versions['latest_revision']];
+}
+
+
+// O hash operacional exclui os metadados variaveis da emissao.
+function rda_canonical($value) {
+    if (!is_array($value)) return $value;
+    if (!array_is_list($value)) ksort($value, SORT_STRING);
+    foreach ($value as $key => $item) $value[$key] = rda_canonical($item);
+    return $value;
+}
+function rda_content_hash(array $snapshot): string {
+    $content = [];
+    foreach (['contract', 'period', 'dates', 'user', 'tickets'] as $key) $content[$key] = $snapshot[$key];
+    return hash('sha256', json_encode(rda_canonical($content),
+        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+}
+function rda_event(PDO $pdo, string $code, string $event, array $actor, array $issuer, string $location = ''): void {
+    $stmt = $pdo->prepare('INSERT INTO rda_emissao_eventos
+        (codigo, evento, ocorrido_em_utc, usuario_id, usuario_login, usuario_nome, perfil, ip, navegador, localizacao)
+        VALUES (?, ?, UTC_TIMESTAMP(6), ?, ?, ?, ?, ?, ?, ?)');
+    $stmt->execute([$code, $event, $actor['id'], $issuer['username'], $issuer['name'] ?: $issuer['username'],
+        $actor['profile'], $_SERVER['REMOTE_ADDR'] ?? '', mb_substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 500), $location]);
 }

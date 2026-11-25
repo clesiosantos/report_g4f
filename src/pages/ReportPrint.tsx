@@ -9,6 +9,8 @@ const ReportPrint = () => {
   const navigate = useNavigate();
   const [record, setRecord] = useState<RDARecord | null>(null);
   const [error, setError] = useState('');
+  const [printing, setPrinting] = useState(false);
+  const [printError, setPrintError] = useState('');
   const code = new URLSearchParams(location.search).get('code') || '';
   const autoPrint = Boolean(location.state?.autoPrint);
   const printed = useRef('');
@@ -28,6 +30,13 @@ const ReportPrint = () => {
     return () => clearTimeout(timer);
   }, [data, code, autoPrint]);
   const fullPeriodDates = data?.dates || [];
+  const requestPrint = async () => {
+    if (printing || !data) return;
+    setPrinting(true); setPrintError('');
+    try { await glpiService.registerReprint(data.code); window.print(); }
+    catch (err) { setPrintError(err instanceof Error ? err.message : 'Falha ao registrar reimpressão.'); }
+    finally { setPrinting(false); }
+  };
 
   const ticketsByDate = useMemo(() => {
     if (!data?.tickets) return {};
@@ -56,6 +65,7 @@ const ReportPrint = () => {
         <div><b>EMITIDO POR:</b> {data.currentUser.name} ({data.currentUser.username})</div>
         <div><b>PERFIL DO EMISSOR:</b> {data.currentUser.profile}</div>
         <div><b>DATA/HORA (Brasília):</b> {issuedDate}</div>
+        <div><b>VERSÃO DO DOCUMENTO:</b> {record.revision}</div>
         <div><b>MÉTODO:</b> Sessão autenticada via senha individual</div>
         <div><b>IP DE ORIGEM:</b> {data.ip || 'Não identificado'}</div>
         <div><b>NAVEGADOR:</b> {browserInfo}</div>
@@ -175,8 +185,9 @@ const ReportPrint = () => {
         </div>
       </div>
 
+      {printError && <p role="alert" className="no-print text-center text-red-700">{printError}</p>}
       <div className="no-print fixed bottom-6 left-0 right-0 flex justify-center gap-4 z-50">
-        <button onClick={() => window.print()} className="bg-blue-600 text-white px-8 py-2.5 rounded-full font-bold shadow-2xl hover:bg-blue-700 transition-all text-sm flex items-center gap-2">Imprimir RDA</button>
+        <button disabled={printing} onClick={requestPrint} className="bg-blue-600 text-white px-8 py-2.5 rounded-full font-bold shadow-2xl hover:bg-blue-700 transition-all text-sm flex items-center gap-2">{printing ? "Registrando..." : "Imprimir RDA"}</button>
         <button onClick={() => navigate('/dashboard')} className="bg-white border border-slate-300 text-slate-700 px-8 py-2.5 rounded-full font-bold shadow-lg hover:bg-slate-50 transition-all text-sm">Voltar ao Dashboard</button>
       </div>
     </div>
