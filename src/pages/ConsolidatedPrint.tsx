@@ -37,6 +37,7 @@ export default function ConsolidatedPrint(){
   if(!allowed)return <main className="p-8">Perfil não autorizado. <Link to="/dashboard">Voltar</Link></main>;
   if(!ready||!batch||error)return <main className="p-8 space-y-3"><Link to="/consolidado">Voltar</Link>{error?<p role="alert" className="text-red-700">{error}</p>:<p>Carregando relatórios: {records.length} de {batch?.snapshot.items.length ?? '...'}</p>}</main>;
   const s=batch.snapshot;
+  const general=s.group_id===0;
   const total=s.items.reduce((n,i)=>n+i.ticket_count,0);
   const withTickets=s.items.filter(i=>i.ticket_count>0).length;
   const requestPrint=async()=>{
@@ -51,10 +52,10 @@ export default function ConsolidatedPrint(){
     <style>{'@media print { .rda-new-page { break-before: page; page-break-before: always; } .rda-index-row { break-inside: avoid; } }'}</style>
     <section className="max-w-[210mm] mx-auto print:max-w-none space-y-6">
       <img src="https://raw.githubusercontent.com/clesiosantos/glpihmg4f/main/LOGOAZUL.png" alt="G4F" className="h-12 w-auto"/>
-      <h1 className="text-3xl font-bold border-b-2 border-slate-800 pb-4">RELATÓRIO CONSOLIDADO DE ATIVIDADES — PETROBRAS TEC</h1>
+      <h1 className="text-3xl font-bold border-b-2 border-slate-800 pb-4">RELATÓRIO CONSOLIDADO {general ? 'GERAL ' : ''}DE ATIVIDADES — PETROBRAS TEC</h1>
       <p><b>Contrato:</b> {s.contract} — G4F SOLUÇÕES CORPORATIVAS LTDA</p>
       <p><b>Gerência:</b> {decodeGlpiLabel(s.group_name)}</p><p><b>Competência:</b> {s.period}</p>
-      <p><b>Escopo:</b> {s.scope==='ALL'?'Todos os colaboradores cadastrados na gerência':'Equipe autorizada do emissor'}</p>
+      <p><b>Escopo:</b> {s.scope==='ALL'?(general?'Todos os colaboradores das gerências e perfis operacionais':'Todos os colaboradores cadastrados na gerência'):'Equipe autorizada do preposto'}</p>
       <div className="grid grid-cols-2 gap-4 border p-4">
         <p><b>Colaboradores:</b> {s.items.length}</p><p><b>Chamados:</b> {total}</p>
         <p><b>Com atividades:</b> {withTickets}</p><p><b>Sem atividades:</b> {s.items.length-withTickets}</p>
@@ -71,8 +72,8 @@ export default function ConsolidatedPrint(){
     </section>
     <section className="rda-new-page max-w-[210mm] mx-auto print:max-w-none mt-8 print:mt-0">
       <h2 className="text-xl font-bold mb-4">Índice de colaboradores</h2>
-      <table className="w-full rda-table border-collapse text-sm"><thead><tr><th className="p-2">Nº</th><th className="p-2 text-left">Colaborador</th><th className="p-2">Versão</th><th className="p-2">Chamados</th></tr></thead>
-      <tbody>{s.items.map((i,n)=><tr className="rda-index-row" key={i.code}><td className="p-2">{n+1}</td><td className="p-2">{i.name}</td><td className="p-2 text-center">{i.revision}</td><td className="p-2 text-center">{i.ticket_count}</td></tr>)}</tbody></table>
+      <table className="w-full rda-table border-collapse text-sm"><thead><tr><th className="p-2">Nº</th><th className="p-2 text-left">Colaborador</th>{general&&<th className="p-2 text-left">Gerência</th>}<th className="p-2">Versão</th><th className="p-2">Chamados</th></tr></thead>
+      <tbody>{s.items.map((i,n)=><tr className="rda-index-row" key={i.code}><td className="p-2">{n+1}</td><td className="p-2">{i.name}</td>{general&&<td className="p-2">{decodeGlpiLabel(i.gerencia)||"Não informada"}</td>}<td className="p-2 text-center">{i.revision}</td><td className="p-2 text-center">{i.ticket_count}</td></tr>)}</tbody></table>
     </section>
     {records.map(r=><section className="rda-new-page mt-8 print:mt-0" key={r.snapshot.code}><RDADocument record={r}/></section>)}
     <div className="no-print fixed bottom-4 left-0 right-0 flex justify-center gap-4"><Link className="bg-white border rounded px-4 py-3" to="/consolidado">Voltar</Link><button disabled={printing} onClick={requestPrint} className="bg-blue-700 text-white rounded px-4 py-3">{printing?'Registrando...':'Imprimir / salvar PDF consolidado'}</button></div>

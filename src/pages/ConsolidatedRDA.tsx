@@ -11,7 +11,7 @@ export default function ConsolidatedRDA() {
   const {user}=useAuth();
   const [groups,setGroups]=useState<RDAGroup[]>([]);
   const [periods,setPeriods]=useState<string[]>([]);
-  const [group,setGroup]=useState(0);
+  const [group,setGroup]=useState(-1);
   const [period,setPeriod]=useState('');
   const [members,setMembers]=useState<RDAGroupMember[]>([]);
   const [history,setHistory]=useState<RDAGroupHistory|null>(null);
@@ -30,25 +30,25 @@ export default function ConsolidatedRDA() {
       setGroups(g);setPeriods(p);
       const requested=new URLSearchParams(location.search).get('period') || '';
       setPeriod(p.includes(requested)?requested:p[0] || '');
-      setGroup(g[0]?.id || 0);
+      setGroup(g.find(item=>item.id>0)?.id ?? g[0]?.id ?? -1);
     }).catch(e=>{if(active)setError(e.message);}).finally(()=>{if(active)setLoading(false);});
     return()=>{active=false;};
   },[allowed,location.search]);
   useEffect(()=>{
     let active=true;setMembers([]);setHistory(null);
-    if(!group)return;
+    if(!allowed||group<0)return;
     setLoading(true);setError('');
     glpiService.getGroupMembers(group).then(r=>{if(active)setMembers(r);}).catch(e=>{if(active)setError(e.message);}).finally(()=>{if(active)setLoading(false);});
     return()=>{active=false;};
-  },[group]);
+  },[group,allowed]);
   useEffect(()=>{
     let active=true;setHistory(null);
-    if(!group||!period)return;
+    if(!allowed||group<0||!period)return;
     glpiService.getGroupHistory(group,period,page).then(r=>{if(active)setHistory(r);}).catch(e=>{if(active)setError(e.message);});
     return()=>{active=false;};
-  },[group,period,page]);
+  },[group,period,page,allowed]);
   const generate=async()=>{
-    if(running.current||!group||!period||loading)return;
+    if(running.current||group<0||!period||loading||!allowed)return;
     running.current=true;setBusy(true);setError('');
     try{
       const roster=await glpiService.getGroupMembers(group);
@@ -72,17 +72,18 @@ export default function ConsolidatedRDA() {
     <section className="max-w-5xl mx-auto rounded-lg bg-white border p-6 space-y-5">
       <Link to="/dashboard" className="text-blue-700 underline">Voltar ao RDA Individual</Link>
       <h1 className="text-2xl font-bold">RDA Consolidado por Gerência</h1>
-      <p className="text-sm text-slate-600">Selecione a competência e a gerência de lotação. O documento reúne todos os colaboradores autorizados, inclusive aqueles sem atividades registradas.</p>
+      <p className="text-sm text-slate-600">Selecione a competência e uma gerência de lotação ou Todas as gerências. O documento reúne todos os colaboradores autorizados, inclusive aqueles sem atividades registradas.</p>
       <div className="grid md:grid-cols-2 gap-4">
         <label className="space-y-1"><span className="block font-semibold">Competência</span><select className="border rounded p-2 w-full" value={period} disabled={busy} onChange={e=>{setPeriod(e.target.value);setPage(1);}}>{periods.map(p=><option key={p}>{p}</option>)}</select></label>
         <label className="space-y-1"><span className="block font-semibold">Gerência de lotação</span><select className="border rounded p-2 w-full" value={group} disabled={busy} onChange={e=>{setGroup(Number(e.target.value));setPage(1);}}>{groups.map(g=><option key={g.id} value={g.id}>{decodeGlpiLabel(g.name)} ({g.count})</option>)}</select></label>
       </div>
+      {group===0&&<p className="text-sm text-slate-700 border rounded p-3">{user?.profile_id===4?'Consolidado geral: todos os colaboradores das gerências e perfis operacionais, inclusive sem lotação.':'Consolidado geral: todos os colaboradores sob sua responsabilidade, de qualquer gerência.'}</p>}
       {error&&<p role="alert" className="text-red-700">{error}</p>}
       {loading?<p>Carregando colaboradores...</p>:<div className="border rounded p-4">
         <h2 className="font-semibold">{members.length} colaboradores autorizados</h2>
         <div className="max-h-60 overflow-y-auto mt-2 text-sm">{members.map(m=><div key={m.id} className="border-b py-1">{m.name}{!m.active?' (inativo)':''}</div>)}</div>
       </div>}
-      <button className="bg-blue-700 text-white rounded px-5 py-3 disabled:opacity-50" disabled={busy||loading||!members.length||!period} onClick={generate}>{busy?'Gerando...':'Gerar RDA Consolidado'}</button>
+      <button className="bg-blue-700 text-white rounded px-5 py-3 disabled:opacity-50" disabled={busy||loading||group<0||!members.length||!period} onClick={generate}>{busy?'Gerando...':group===0?'Gerar RDA Consolidado Geral':'Gerar RDA Consolidado'}</button>
       {busy&&<div className="space-y-2"><p>Processando {progress.done} de {progress.total}: {progress.name}</p><progress className="w-full" max={Math.max(1,progress.total)} value={progress.done}/><p className="text-sm">Mantenha esta página aberta até finalizar.</p></div>}
       <div className="border-t pt-4 space-y-3"><h2 className="font-bold">Histórico de consolidados</h2>
         {history?.items.length===0&&<p>Nenhuma emissão neste filtro.</p>}

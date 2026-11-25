@@ -64,7 +64,7 @@ export interface RDAPage<T> { items: T[]; total: number; page: number; page_size
 
 export interface RDAGroup { id: number; name: string; count: number }
 export interface RDAGroupMember { id: number; name: string; active: boolean }
-export interface RDAGroupItem { user_id: number; name: string; code: string; sha256: string; revision: number; ticket_count: number }
+export interface RDAGroupItem { user_id: number; name: string; gerencia?: string; code: string; sha256: string; revision: number; ticket_count: number }
 export interface RDAGroupSnapshot {
   code: string; contract: string; group_id: number; group_name: string; period: string; scope: string;
   issued_at: string; issuer: { name: string; username: string; profile: string }; items: RDAGroupItem[];

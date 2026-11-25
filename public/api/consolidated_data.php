@@ -25,6 +25,35 @@ function rda_group_members(PDO $pdo, array $actor, int $group = 0): array {
     return $stmt->fetchAll();
 }
 
+
+// ID zero representa o consolidado geral, sem limitar pela lotacao.
+// Inclui o universo das gerencias e os perfis operacionais sem lotacao.
+// EXISTS evita duplicar pessoas com mais de um vinculo ou perfil.
+function rda_all_members(PDO $pdo, array $actor): array {
+    rda_group_scope($actor);
+    $scope = report_is_super_admin($actor) ? '' : "AND (u.id = ? OR EXISTS (
+        SELECT 1 FROM glpi_plugin_fields_useragrupamentos a
+        WHERE a.items_id = u.id AND a.itemtype = 'User' AND a.users_id_prepostofield = ?))";
+    $stmt = $pdo->prepare("SELECT u.id,
+        COALESCE(NULLIF(TRIM(CONCAT_WS(' ', u.firstname, u.realname)), ''), u.name) AS name,
+        u.is_active
+        FROM glpi_users u
+        WHERE u.id > 0 AND u.is_deleted = 0
+        AND (EXISTS (SELECT 1 FROM glpi_profiles_users pu
+              WHERE pu.users_id = u.id AND pu.profiles_id IN (6,10,11))
+             OR EXISTS (SELECT 1 FROM glpi_plugin_fields_useragrupamentos p
+              JOIN glpi_plugin_fields_gerencialotaofielddropdowns g
+                ON g.id = p.plugin_fields_gerencialotaofielddropdowns_id
+              WHERE p.items_id = u.id AND p.itemtype = 'User' AND g.id > 0))
+        $scope ORDER BY name, u.id");
+    $stmt->execute($scope ? [$actor['id'], $actor['id']] : []);
+    return $stmt->fetchAll();
+}
+
+function rda_consolidated_members(PDO $pdo, array $actor, int $group): array {
+    return $group === 0 ? rda_all_members($pdo, $actor) : rda_group_members($pdo, $actor, $group);
+}
+
 function rda_group_find(PDO $pdo, string $code): ?array {
     $stmt = $pdo->prepare('SELECT id, codigo, gerencia_id, competencia, escopo, snapshot_json, sha256, hash_conteudo FROM rda_consolidados WHERE codigo = ?');
     $stmt->execute([$code]);

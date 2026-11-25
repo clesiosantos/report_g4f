@@ -8,3 +8,9 @@
 - A validação pública aceita códigos individuais e consolidados. Não expõe nomes ou conteúdo. Recuperação integral exige autenticação e autorização de todos os membros; o gestor só consulta seus próprios consolidados e o Super-Admin pode abrir qualquer código autorizado, com histórico do escopo global.
 - Reimpressão do consolidado registra solicitação na tabela rda_consolidado_eventos, não comprova impressão física. Incluir as três novas tabelas nos backups.
 - Bloquear acesso HTTP direto ao helper consolidated_data.php no Apache junto com report_data.php.
+
+## Consolidado geral (Todas as gerências)
+- O ID 0 é reservado ao consolidado geral. Não requer migração adicional: usa as tabelas da migração 003, com histórico e código próprios por competência e escopo.
+- Inclui usuários não excluídos vinculados a uma gerência válida ou com perfil operacional Posto de Trabalho (6), Lider (10) ou Preposto (11), inclusive inativos, sem lotação e sem chamados. Contas exclusivamente administrativas sem lotação não integram o universo de colaboradores. Cada ID é incluído uma única vez.
+- Preposto limitado aos seus vínculos atuais (e ao próprio RDA quando elegível), mesmo na opção Todas as gerências. Super-Admin consulta o universo completo. Demais perfis não acessam a emissão consolidada. Os relatórios anteriores por gerência não são alterados.
+- Índice geral inclui a gerência registrada em cada RDA individual e ordem alfabética; cada colaborador inicia uma página. Não há limite fixo de colaboradores, mas a geração e impressão dependem de sessão, rede e recursos do navegador.
