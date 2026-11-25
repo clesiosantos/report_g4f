@@ -1,3 +1,4 @@
+import { decodeGlpiLabel } from '@/lib/glpiLabel';
 import { useMemo } from 'react';
 import { RDARecord, TicketReport } from '@/lib/glpi';
 
@@ -73,10 +74,10 @@ export function RDADocument({ record }: { record: RDARecord }) {
           <div className="border-b border-slate-300 py-0.5"><span className="font-bold">COLABORADOR:</span> {data.user.name}</div>
           <div className="border-b border-slate-300 py-0.5"><span className="font-bold">NOME DE USUÁRIO:</span> {data.user.username}</div>
           <div className="border-b border-slate-300 py-0.5"><span className="font-bold">CHAVE:</span> {data.user.chave}</div>
-          <div className="border-b border-slate-300 py-0.5"><span className="font-bold">GERÊNCIA:</span> {data.user.gerencia}</div>
+          <div className="border-b border-slate-300 py-0.5"><span className="font-bold">GERÊNCIA:</span> {decodeGlpiLabel(data.user.gerencia)}</div>
           <div className="border-b border-slate-300 py-0.5"><span className="font-bold">CARGO:</span> {data.user.profile}</div>
           <div className="border-b border-slate-300 py-0.5"><span className="font-bold">E-MAIL:</span> {data.user.email}</div>
-          <div className="border-b border-slate-300 py-0.5"><span className="font-bold">ATIVIDADE:</span> {data.user.entidade}</div>
+          <div className="border-b border-slate-300 py-0.5"><span className="font-bold">ATIVIDADE:</span> {decodeGlpiLabel(data.user.entidade)}</div>
           <div className="border-b border-slate-300 py-0.5 font-bold text-blue-800 text-[9pt]">
             <span className="text-slate-900">PERÍODO:</span> {data.period}
           </div>

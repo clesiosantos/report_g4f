@@ -1,3 +1,4 @@
+import { decodeGlpiLabel } from '@/lib/glpiLabel';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { glpiService, RDAGroup, RDAGroupMember, RDAGroupHistory } from '@/lib/glpi';
@@ -74,7 +75,7 @@ export default function ConsolidatedRDA() {
       <p className="text-sm text-slate-600">Selecione a competência e a gerência de lotação. O documento reúne todos os colaboradores autorizados, inclusive aqueles sem atividades registradas.</p>
       <div className="grid md:grid-cols-2 gap-4">
         <label className="space-y-1"><span className="block font-semibold">Competência</span><select className="border rounded p-2 w-full" value={period} disabled={busy} onChange={e=>{setPeriod(e.target.value);setPage(1);}}>{periods.map(p=><option key={p}>{p}</option>)}</select></label>
-        <label className="space-y-1"><span className="block font-semibold">Gerência de lotação</span><select className="border rounded p-2 w-full" value={group} disabled={busy} onChange={e=>{setGroup(Number(e.target.value));setPage(1);}}>{groups.map(g=><option key={g.id} value={g.id}>{g.name} ({g.count})</option>)}</select></label>
+        <label className="space-y-1"><span className="block font-semibold">Gerência de lotação</span><select className="border rounded p-2 w-full" value={group} disabled={busy} onChange={e=>{setGroup(Number(e.target.value));setPage(1);}}>{groups.map(g=><option key={g.id} value={g.id}>{decodeGlpiLabel(g.name)} ({g.count})</option>)}</select></label>
       </div>
       {error&&<p role="alert" className="text-red-700">{error}</p>}
       {loading?<p>Carregando colaboradores...</p>:<div className="border rounded p-4">

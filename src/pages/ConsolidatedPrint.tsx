@@ -1,3 +1,4 @@
+import { decodeGlpiLabel } from '@/lib/glpiLabel';
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { glpiService, RDAGroupRecord, RDARecord } from '@/lib/glpi';
@@ -52,7 +53,7 @@ export default function ConsolidatedPrint(){
       <img src="https://raw.githubusercontent.com/clesiosantos/glpihmg4f/main/LOGOAZUL.png" alt="G4F" className="h-12 w-auto"/>
       <h1 className="text-3xl font-bold border-b-2 border-slate-800 pb-4">RELATÓRIO CONSOLIDADO DE ATIVIDADES — PETROBRAS TEC</h1>
       <p><b>Contrato:</b> {s.contract} — G4F SOLUÇÕES CORPORATIVAS LTDA</p>
-      <p><b>Gerência:</b> {s.group_name}</p><p><b>Competência:</b> {s.period}</p>
+      <p><b>Gerência:</b> {decodeGlpiLabel(s.group_name)}</p><p><b>Competência:</b> {s.period}</p>
       <p><b>Escopo:</b> {s.scope==='ALL'?'Todos os colaboradores cadastrados na gerência':'Equipe autorizada do emissor'}</p>
       <div className="grid grid-cols-2 gap-4 border p-4">
         <p><b>Colaboradores:</b> {s.items.length}</p><p><b>Chamados:</b> {total}</p>
