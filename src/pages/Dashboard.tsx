@@ -132,6 +132,7 @@ const Dashboard = () => {
           <h1 className="text-xl font-bold text-slate-800">Portal RDA</h1>
         </div>
         <div className="flex items-center gap-4">
+          {isManager && <Button variant="outline" onClick={() => navigate("/consolidado?" + new URLSearchParams({ period: selectedPeriod }))}>RDA por Gerência</Button>}
           <Button variant="outline" onClick={() => navigate("/validar")}>Validar RDA</Button>
           <div className="text-right hidden sm:block">
             <p className="text-sm font-bold text-slate-900">{user.name}</p>

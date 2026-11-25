@@ -11,6 +11,8 @@ import ReportPrint from "./pages/ReportPrint";
 import NotFound from "./pages/NotFound";
 import VerifyRDA from "./pages/VerifyRDA";
 import RDAHistory from "./pages/RDAHistory";
+import ConsolidatedRDA from "./pages/ConsolidatedRDA";
+import ConsolidatedPrint from "./pages/ConsolidatedPrint";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +41,8 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
+            <Route path="/consolidado" element={<ProtectedRoute><ConsolidatedRDA /></ProtectedRoute>} />
+            <Route path="/consolidado/print" element={<ProtectedRoute><ConsolidatedPrint /></ProtectedRoute>} />
             <Route path="/historico" element={<ProtectedRoute><RDAHistory /></ProtectedRoute>} />
             <Route path="/validar" element={<VerifyRDA />} />
             <Route path="*" element={<NotFound />} />

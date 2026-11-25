@@ -25,6 +25,8 @@ export default function VerifyRDA() {
         {error && <p role="alert" className="text-red-700">{error}</p>}
         {proof && <div className="border rounded p-4 space-y-2 text-sm break-words">
           <h2 className="text-green-800 font-bold">Registro de emissão localizado e íntegro</h2>
+          <p><b>Tipo:</b> {proof.type === "consolidated" ? "Consolidado por gerência" : "Individual"}</p>
+          {proof.type === "consolidated" && <p><b>Colaboradores:</b> {proof.member_count}</p>}
           <p><b>Contrato:</b> {proof.contract}</p>
           <p><b>Competência:</b> {proof.period}</p>
           <p><b>Versão:</b> {proof.revision} de {proof.latest_revision}</p>
@@ -34,7 +36,7 @@ export default function VerifyRDA() {
           <p><b>Código:</b> <span className="font-mono break-all">{proof.code}</span></p>
           <p><b>SHA-256 do registro:</b> <span className="font-mono break-all">{proof.sha256}</span></p>
           <p className="text-slate-600">A consulta confirma o registro no sistema, não a identidade de um PDF externo nem uma assinatura. Compare o documento com a versão registrada.</p>
-          <Link className="text-blue-700 underline" to={'/print?code=' + proof.code}>Consultar RDA original (acesso autorizado)</Link>
+          <Link className="text-blue-700 underline" to={(proof.type === 'consolidated' ? '/consolidado/print?code=' : '/print?code=') + proof.code}>Consultar RDA original (acesso autorizado)</Link>
         </div>}
         <Link className="text-blue-700 underline text-sm" to="/">Voltar ao portal</Link>
       </section>

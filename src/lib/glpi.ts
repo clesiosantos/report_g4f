@@ -47,6 +47,7 @@ export interface RDAEmission {
 }
 export interface RDARecord { snapshot: RDAEmission; sha256: string; hash_conteudo: string; revision: number; latest_revision: number; reused?: boolean }
 export interface RDAProof {
+  type?: 'consolidated'; member_count?: number;
   code: string; contract: string; issued_at: string; period: string;
   ticket_count: number; sha256: string; revision: number; latest_revision: number;
 }
@@ -61,6 +62,16 @@ export interface RDAEvent {
 }
 export interface RDAPage<T> { items: T[]; total: number; page: number; page_size: number }
 
+export interface RDAGroup { id: number; name: string; count: number }
+export interface RDAGroupMember { id: number; name: string; active: boolean }
+export interface RDAGroupItem { user_id: number; name: string; code: string; sha256: string; revision: number; ticket_count: number }
+export interface RDAGroupSnapshot {
+  code: string; contract: string; group_id: number; group_name: string; period: string; scope: string;
+  issued_at: string; issuer: { name: string; username: string; profile: string }; items: RDAGroupItem[];
+}
+export interface RDAGroupRecord { snapshot: RDAGroupSnapshot; sha256: string; revision: number; latest_revision: number; reused?: boolean }
+export interface RDAGroupHistory { items: {code: string; issued_at: string; revision: number; latest_revision: number; count: number}[]; has_more: boolean }
+
 const api = `${import.meta.env.BASE_URL}api/`;
 async function rdaResponse<T>(response: Response): Promise<T> {
   const data = await response.json();
@@ -69,6 +80,23 @@ async function rdaResponse<T>(response: Response): Promise<T> {
 }
 
 export const glpiService = {
+  async getGroups(): Promise<RDAGroup[]> { return rdaResponse(await fetch(api + 'consolidated.php')); },
+  async getGroupMembers(group: number): Promise<RDAGroupMember[]> {
+    return rdaResponse(await fetch(api + 'consolidated.php?' + new URLSearchParams({ group_id: String(group) })));
+  },
+  async issueGroup(group: number, period: string, codes: Record<string,string>): Promise<RDAGroupRecord> {
+    return rdaResponse(await fetch(api + 'consolidated.php', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({group_id:group,period,codes}) }));
+  },
+  async getGroupRDA(code: string): Promise<RDAGroupRecord> {
+    return rdaResponse(await fetch(api + 'consolidated.php?' + new URLSearchParams({code})));
+  },
+  async getGroupHistory(group: number, period: string, page: number): Promise<RDAGroupHistory> {
+    return rdaResponse(await fetch(api + 'consolidated.php?' + new URLSearchParams({group_id:String(group),period,page:String(page),history:'1'})));
+  },
+  async registerGroupReprint(code: string): Promise<void> {
+    await rdaResponse(await fetch(api + 'consolidated.php', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'reprint',code})}));
+  },
+
   async getRDAHistory(userId: number, period: string, page = 1): Promise<RDAPage<RDAHistoryItem>> {
     return rdaResponse(await fetch(api + 'history.php?' + new URLSearchParams({ user_id: String(userId), period, page: String(page) })));
   },
