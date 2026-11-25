@@ -37,7 +37,7 @@ const Login = () => {
       login(userData);
       showSuccess(`Bem-vindo, ${userData.name}!`);
     } catch (err) {
-      showError("Falha na autenticação (Fisco).");
+      showError("Falha na autenticação (Petro Tec).");
     } finally {
       setLoading(false);
     }
@@ -55,7 +55,7 @@ const Login = () => {
             />
           </div>
           <div className="text-center space-y-1">
-            <CardTitle className="text-2xl font-bold text-slate-800">Portal RDA - Fisco</CardTitle>
+            <CardTitle className="text-2xl font-bold text-slate-800">Portal RDA - Petro Tec</CardTitle>
             <CardDescription>Acesse com suas credenciais do GLPI</CardDescription>
           </div>
         </CardHeader>

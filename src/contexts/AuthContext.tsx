@@ -1,12 +1,12 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { GLPIUser } from '@/lib/glpi';
+import { GLPIUser, glpiService } from '@/lib/glpi';
 
 interface AuthContextType {
   user: GLPIUser | null;
   login: (userData: GLPIUser) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -17,25 +17,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('glpi_user');
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (e) {
-        localStorage.removeItem('glpi_user');
-      }
-    }
-    setIsLoading(false);
+    localStorage.removeItem('glpi_user');
+    let active = true;
+    glpiService.me().then(data => { if (active) setUser(data); })
+      .catch(() => { if (active) setUser(null); })
+      .finally(() => { if (active) setIsLoading(false); });
+    return () => { active = false; };
   }, []);
 
   const login = (userData: GLPIUser) => {
     setUser(userData);
-    localStorage.setItem('glpi_user', JSON.stringify(userData));
+
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('glpi_user');
+  const logout = async () => {
+    try { await glpiService.logout(); setUser(null); }
+    catch { window.alert('Nao foi possivel encerrar a sessao. Tente novamente.'); }
   };
 
   return (

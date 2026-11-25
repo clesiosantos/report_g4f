@@ -1,28 +1,16 @@
 <?php
-require_once 'db.php';
-header('Content-Type: application/json');
-
-$managerId = $_GET['manager_id'] ?? '';
-$role = $_GET['role'] ?? '';
-
-if (empty($managerId) || empty($role)) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Parâmetros insuficientes']);
-    exit;
+require_once __DIR__ . '/auth.php';
+report_method('GET');
+require_once __DIR__ . '/db.php';
+$actor = report_actor($pdo);
+$column = report_manager_column($actor);
+if ($column === null) report_error(403, 'Acesso negado.');
+$managerId = (int)$actor['id'];
+if (isset($_GET['manager_id']) && filter_var($_GET['manager_id'], FILTER_VALIDATE_INT) !== $managerId) {
+    report_error(403, 'Acesso negado.');
 }
 
 try {
-    $roleType = (stripos($role, 'PREPOSTO') !== false) ? 2 : 1;
-
-    $stmtUser = $pdo->prepare("SELECT CONCAT(IFNULL(firstname, ''), ' ', IFNULL(realname, '')) as fullname FROM glpi_users WHERE id = ?");
-    $stmtUser->execute([$managerId]);
-    $managerName = $stmtUser->fetchColumn();
-
-    if (!$managerName) {
-        echo json_encode([]);
-        exit;
-    }
-
     $sql = "
         SELECT 
             u.id, 
@@ -41,19 +29,23 @@ try {
         LEFT JOIN glpi_profiles_users pu ON (pu.users_id = u.id)
         LEFT JOIN glpi_profiles pr ON (pr.id = pu.profiles_id)
         LEFT JOIN glpi_entities en ON (en.id = pu.entities_id)
-        WHERE fc_leader_prepost(u.id, ?) = ?
+        WHERE EXISTS (SELECT 1 FROM glpi_plugin_fields_useragrupamentos a WHERE a.items_id = u.id AND a.itemtype = 'User' AND a.$column = ?)
+        AND u.id <> ?
         AND u.is_deleted = 0
         GROUP BY u.id, name, username, gerencia, lider, preposto
         ORDER BY u.firstname ASC
     ";
 
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([$roleType, $managerName]);
+    $stmt->execute([$managerId, $managerId]);
     $results = $stmt->fetchAll();
+    foreach ($results as &$row) $row['id'] = (int)$row['id'];
+    unset($row);
 
     echo json_encode($results);
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['error' => 'Erro ao buscar subordinados: ' . $e->getMessage()]);
+    error_log('RDA Tec: falha ao consultar subordinados.');
+    echo json_encode(['error' => 'Falha ao consultar subordinados.']);
 }
 ?>

@@ -1,13 +1,16 @@
 <?php
-require_once 'db.php';
+require_once __DIR__ . '/auth.php';
+report_method('GET');
+require_once __DIR__ . '/db.php';
+$actor = report_actor($pdo);
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 header('Content-Type: application/json');
 
-$period = $_GET['period'] ?? '';
-$userId = $_GET['user_id'] ?? '';
+$period = is_string($_GET['period'] ?? null) ? $_GET['period'] : '';
+$userId = filter_var($_GET['user_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 
-if (empty($period) || empty($userId)) {
+if (empty($period) || !$userId || strlen($period) > 255) {
     http_response_code(400);
     echo json_encode(['error' => 'Período e ID do usuário são obrigatórios']);
     exit;
@@ -45,6 +48,7 @@ $sql = "
 ";
 
 try {
+    if (!report_can_view($pdo, $actor, $userId)) report_error(403, 'Acesso negado.');
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$period, $userId]);
     $results = $stmt->fetchAll();
@@ -58,6 +62,7 @@ try {
     echo json_encode($results);
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['error' => $e->getMessage()]);
+    error_log('RDA Tec: falha na consulta de chamados.');
+    echo json_encode(['error' => 'Falha ao consultar chamados.']);
 }
 ?>

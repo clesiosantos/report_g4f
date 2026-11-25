@@ -230,7 +230,7 @@ const Dashboard = () => {
                           {dayItems.map(item => (
                             <a 
                               key={item.id} 
-                              href={`https://fisco.g4f.sharksolucoes.com.br/front/ticket.form.php?id=${item.id}`}
+                              href={`/front/ticket.form.php?id=${item.id}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="group flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-1 bg-blue-50 text-blue-700 rounded border border-blue-200 hover:bg-blue-700 hover:text-white hover:border-blue-800 transition-all shadow-sm"

@@ -1,5 +1,8 @@
 <?php
-require_once 'db.php';
+require_once __DIR__ . '/auth.php';
+report_method('GET');
+require_once __DIR__ . '/db.php';
+report_actor($pdo);
 header('Content-Type: application/json');
 
 try {
@@ -25,6 +28,7 @@ try {
     echo json_encode($results);
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['error' => 'Erro SQL: ' . $e->getMessage()]);
+    error_log('RDA Tec: falha ao consultar competencias.');
+    echo json_encode(['error' => 'Falha ao consultar competencias.']);
 }
 ?>

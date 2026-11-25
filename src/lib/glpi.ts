@@ -28,12 +28,25 @@ export interface GLPIUser {
   lider: string;
   preposto: string;
   ip?: string;
-  session_token?: string;
+  profile_id?: number;
 }
 
+const api = `${import.meta.env.BASE_URL}api/`;
 export const glpiService = {
+  async me(): Promise<GLPIUser | null> {
+    const response = await fetch(api + 'session.php');
+    if (response.status === 401) return null;
+    if (!response.ok) throw new Error('Falha na sessao');
+    return response.json();
+  },
+
+  async logout(): Promise<void> {
+    const response = await fetch(api + 'logout.php', { method: 'POST' });
+    if (!response.ok) throw new Error('Falha ao encerrar sessao');
+  },
+
   async login(user: string, pass: string): Promise<GLPIUser> {
-    const response = await fetch('api/login.php', {
+    const response = await fetch(api + 'login.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user, pass })
@@ -48,7 +61,7 @@ export const glpiService = {
   },
 
   async getPeriods(): Promise<string[]> {
-    const response = await fetch('api/periods.php');
+    const response = await fetch(api + 'periods.php');
     if (!response.ok) throw new Error('Falha ao carregar períodos');
     return response.json();
   },
@@ -58,7 +71,7 @@ export const glpiService = {
       period, 
       user_id: userId.toString() 
     });
-    const response = await fetch(`api/tickets.php?${params.toString()}`);
+    const response = await fetch(`${api}tickets.php?${params.toString()}`);
     
     if (!response.ok) {
       throw new Error('Falha ao carregar tickets');
@@ -72,7 +85,7 @@ export const glpiService = {
       manager_id: managerId.toString(), 
       role: role 
     });
-    const response = await fetch(`api/subordinates.php?${params.toString()}`);
+    const response = await fetch(`${api}subordinates.php?${params.toString()}`);
     if (!response.ok) throw new Error('Falha ao carregar subordinados');
     return response.json();
   }
