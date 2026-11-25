@@ -53,6 +53,10 @@ function report_actor(PDO $pdo): array {
     return $actor;
 }
 
+function report_is_super_admin(array $actor): bool {
+    return (int)($actor['profile_id'] ?? 0) === 4;
+}
+
 function report_manager_column(array $actor): ?string {
     return match ((int)$actor['profile_id']) {
         10 => 'users_id_liderfield',
@@ -63,6 +67,11 @@ function report_manager_column(array $actor): ?string {
 
 function report_can_view(PDO $pdo, array $actor, int $target): bool {
     if ((int)$actor['id'] === $target) return true;
+    if (report_is_super_admin($actor)) {
+        $stmt = $pdo->prepare('SELECT 1 FROM glpi_users WHERE id = ? AND is_deleted = 0 LIMIT 1');
+        $stmt->execute([$target]);
+        return (bool)$stmt->fetchColumn();
+    }
     $column = report_manager_column($actor);
     if ($column === null) return false;
     // Coluna escolhida apenas da lista fixa acima; IDs parametrizados.

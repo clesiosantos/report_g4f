@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,15 +22,14 @@ const Dashboard = () => {
   const [selectedColaborador, setSelectedColaborador] = useState<GLPIUser | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingPeriods, setLoadingPeriods] = useState(true);
+  const [loadedSelection, setLoadedSelection] = useState<string | null>(null);
+  const requestId = useRef(0);
   
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const isManager = useMemo(() => {
-    if (!user?.profile) return false;
-    const profile = user.profile.toUpperCase();
-    return profile.includes('LIDER') || profile.includes('PREPOSTO');
-  }, [user]);
+  const isSuperAdmin = user?.profile_id === 4;
+  const isManager = isSuperAdmin || user?.profile_id === 10 || user?.profile_id === 11;
 
   useEffect(() => {
     if (user) document.title = `Dashboard RDA - ${user.name}`;
@@ -47,9 +46,7 @@ const Dashboard = () => {
         setSelectedPeriod(defaultPeriod);
 
         if (isManager) {
-          const profile = user.profile.toUpperCase();
-          const role = profile.includes('PREPOSTO') ? 'Preposto' : 'Lider';
-          const subs = await glpiService.getSubordinates(user.id, role);
+          const subs = await glpiService.getSubordinates(user.id);
           setSubordinates(subs);
           setSelectedColaborador(user);
           if (defaultPeriod) loadData(defaultPeriod, user.id);
@@ -68,14 +65,19 @@ const Dashboard = () => {
 
   const loadData = async (period: string, userId: number) => {
     if (!period || !userId) return;
+    const currentRequest = ++requestId.current;
     setLoading(true);
+    setTickets([]);
+    setLoadedSelection(null);
     try {
       const data = await glpiService.getTickets(period, userId);
+      if (currentRequest !== requestId.current) return;
       setTickets(data);
+      setLoadedSelection(`${period}:${userId}`);
     } catch (err) {
-      showError("Erro ao carregar atividades.");
+      if (currentRequest === requestId.current) showError("Erro ao carregar atividades.");
     } finally {
-      setLoading(false);
+      if (currentRequest === requestId.current) setLoading(false);
     }
   };
 
@@ -101,7 +103,7 @@ const Dashboard = () => {
   };
 
   const handleExportPDF = () => {
-    if (!selectedPeriod || !selectedColaborador || !user) return;
+    if (!selectedPeriod || !selectedColaborador || !user || loadedSelection !== `${selectedPeriod}:${selectedColaborador.id}`) return;
     navigate('/print', { 
       state: { tickets, user: selectedColaborador, currentUser: user, period: selectedPeriod } 
     });
@@ -146,7 +148,7 @@ const Dashboard = () => {
 
               {isManager && (
                 <div className="space-y-2 flex-1 w-full">
-                  <Label className="flex items-center gap-2 text-slate-600 font-semibold"><Users className="w-4 h-4" /> Equipe / Colaborador</Label>
+                  <Label className="flex items-center gap-2 text-slate-600 font-semibold"><Users className="w-4 h-4" /> {isSuperAdmin ? 'Todos os colaboradores' : 'Equipe / Colaborador'}</Label>
                   <Select value={selectedColaborador?.id.toString()} onValueChange={(id) => {
                     const colab = subordinates.find(s => s.id === parseInt(id)) || (id === user.id.toString() ? user : null);
                     if (colab) { setSelectedColaborador(colab); loadData(selectedPeriod, colab.id); }
@@ -166,7 +168,7 @@ const Dashboard = () => {
                 <Button className="flex-1 md:w-40 bg-blue-700 hover:bg-blue-800" onClick={() => loadData(selectedPeriod, selectedColaborador?.id || user.id)} disabled={loading}>
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4 mr-2" />} Atualizar
                 </Button>
-                <Button variant="outline" className="flex gap-2" onClick={handleExportPDF} disabled={!selectedPeriod || loading}>
+                <Button variant="outline" className="flex gap-2" onClick={handleExportPDF} disabled={!selectedPeriod || loading || loadedSelection !== `${selectedPeriod}:${selectedColaborador?.id}`}>
                   <Download className="w-4 h-4" /> Gerar RDA
                 </Button>
               </div>

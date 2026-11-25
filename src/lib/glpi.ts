@@ -80,10 +80,9 @@ export const glpiService = {
     return response.json();
   },
 
-  async getSubordinates(managerId: number, role: string): Promise<GLPIUser[]> {
+  async getSubordinates(managerId: number): Promise<GLPIUser[]> {
     const params = new URLSearchParams({ 
-      manager_id: managerId.toString(), 
-      role: role 
+      manager_id: managerId.toString() 
     });
     const response = await fetch(`${api}subordinates.php?${params.toString()}`);
     if (!response.ok) throw new Error('Falha ao carregar subordinados');

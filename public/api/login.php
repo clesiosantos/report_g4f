@@ -41,7 +41,7 @@ try {
         LEFT JOIN glpi_entities en ON (en.id = pu.entities_id)
         WHERE u.name = ?
         AND u.is_deleted = 0 AND u.is_active = 1 AND pu.profiles_id IN (6, 8, 10, 11, 3, 4)
-        ORDER BY CASE pu.profiles_id WHEN 11 THEN 1 WHEN 10 THEN 2 WHEN 6 THEN 3 ELSE 4 END, pu.is_dynamic DESC, pu.id DESC
+        ORDER BY CASE pu.profiles_id WHEN 4 THEN 0 WHEN 11 THEN 1 WHEN 10 THEN 2 WHEN 6 THEN 3 ELSE 4 END, pu.is_dynamic DESC, pu.id DESC
         LIMIT 1
     ";
     
