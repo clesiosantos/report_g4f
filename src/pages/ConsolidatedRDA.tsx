@@ -20,7 +20,7 @@ export default function ConsolidatedRDA() {
   const [error,setError]=useState('');
   const [progress,setProgress]=useState({done:0,total:0,name:''});
   const running=useRef(false);
-  const allowed=[4,10,11].includes(user?.profile_id ?? 0);
+  const allowed=[4,11].includes(user?.profile_id ?? 0);
   useEffect(()=>{
     if(!allowed)return;
     let active=true;

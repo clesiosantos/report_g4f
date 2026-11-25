@@ -2,8 +2,11 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { glpiService, RDAGroupRecord, RDARecord } from '@/lib/glpi';
 import { RDADocument, RDAPrintStyle } from '@/components/RDADocument';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function ConsolidatedPrint(){
+  const {user}=useAuth();
+  const allowed=[4,11].includes(user?.profile_id ?? 0);
   const code=new URLSearchParams(useLocation().search).get('code')||'';
   const [batch,setBatch]=useState<RDAGroupRecord|null>(null);
   const [records,setRecords]=useState<RDARecord[]>([]);
@@ -28,8 +31,9 @@ export default function ConsolidatedPrint(){
         if(active)setReady(true);
       }catch(e){if(active)setError(e instanceof Error?e.message:'Falha ao carregar.');}
     }
-    load();return()=>{active=false;};
-  },[code]);
+    if(allowed) load();return()=>{active=false;};
+  },[code,allowed]);
+  if(!allowed)return <main className="p-8">Perfil não autorizado. <Link to="/dashboard">Voltar</Link></main>;
   if(!ready||!batch||error)return <main className="p-8 space-y-3"><Link to="/consolidado">Voltar</Link>{error?<p role="alert" className="text-red-700">{error}</p>:<p>Carregando relatórios: {records.length} de {batch?.snapshot.items.length ?? '...'}</p>}</main>;
   const s=batch.snapshot;
   const total=s.items.reduce((n,i)=>n+i.ticket_count,0);

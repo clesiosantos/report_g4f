@@ -2,7 +2,7 @@
 // Acesso ao consolidado usa o mesmo escopo individual, nunca o filtro do navegador.
 function rda_group_scope(array $actor): string {
     if (report_is_super_admin($actor)) return 'ALL';
-    if (report_manager_column($actor) !== null) return $actor['profile_id'] . ':' . $actor['id'];
+    if ((int)($actor['profile_id'] ?? 0) === 11) return '11:' . $actor['id'];
     report_error(403, 'Perfil nao autorizado para consolidacao.');
 }
 
