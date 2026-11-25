@@ -32,17 +32,17 @@ dnf install nodejs -y
 ```
 
 ### 2. Configuração do Backend (Variáveis de Ambiente)
-As APIs estão localizadas em `public/api/`. Para facilitar a troca entre ambientes (Fisco/Reduc), você pode definir variáveis de ambiente no seu arquivo de configuração do Apache (`vhost`) ou no `.htaccess`:
+As APIs estão localizadas em `public/api/`. Na branch `Tec`, configure as variáveis de ambiente exclusivamente no servidor, em configuração Apache/PHP-FPM restrita, fora do diretório publicado e do Git.
 
 ```apache
 # Exemplo no .htaccess ou vHost
-SetEnv DB_HOST db.petro.local
-SetEnv DB_NAME glpi_fisco
-SetEnv DB_USER glpi_fisco
+SetEnv DB_HOST localhost
+SetEnv DB_NAME NOME_DO_BANCO_TEC
+SetEnv DB_USER USUARIO_DE_LEITURA
 SetEnv DB_PASS SUA_SENHA_AQUI
 ```
 
-Se as variáveis não forem encontradas, o sistema tentará conectar no banco **glpi_fisco** por padrão.
+As quatro variáveis são obrigatórias; não há credenciais de fallback. Sem configuração válida, a conexão retorna HTTP 503. Configure `GLPI_API_URL` e `GLPI_APP_TOKEN` no servidor somente se a integração REST for utilizada. Não publique as APIs antes de validar a autenticação e autorização no backend.
 
 ### 3. Build e Deploy do Frontend
 No diretório raiz do projeto:

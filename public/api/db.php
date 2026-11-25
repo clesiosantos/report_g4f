@@ -1,27 +1,33 @@
 <?php
 /**
- * Configurações do Banco de Dados GLPI
+ * Conexao com o banco GLPI. Credenciais devem ser fornecidas pelo servidor.
  */
+$host = getenv('DB_HOST');
+$db = getenv('DB_NAME');
+$user = getenv('DB_USER');
+$pass = getenv('DB_PASS');
 
-// Usamos as credenciais fornecidas por você como fallback direto
-$host = getenv('DB_HOST') ?: 'db.petro.local';
-$db   = getenv('DB_NAME') ?: 'glpi_fisco';
-$user = getenv('DB_USER') ?: 'glpi_fisco';
-$pass = getenv('DB_PASS') ?: 'GLPiDB@2024.';
-$charset = 'utf8mb4';
+foreach ([$host, $db, $user, $pass] as $value) {
+    if ($value === false || $value === '') {
+        error_log('Portal RDA: configuracao de banco incompleta.');
+        header('Content-Type: application/json', true, 503);
+        echo json_encode(['error' => 'Banco de dados do relatorio nao configurado.']);
+        exit;
+    }
+}
 
-$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
+$dsn = "mysql:host=$host;dbname=$db;charset=utf8mb4";
 $options = [
-    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    PDO::ATTR_EMULATE_PREPARES   => false,
+    PDO::ATTR_EMULATE_PREPARES => false,
 ];
 
 try {
-     $pdo = new PDO($dsn, $user, $pass, $options);
-} catch (\PDOException $e) {
-     header('Content-Type: application/json', true, 500);
-     echo json_encode(['error' => 'Falha na conexão com o banco de dados (Verifique se o db.petro.local é acessível): ' . $e->getMessage()]);
-     exit;
+    $pdo = new PDO($dsn, $user, $pass, $options);
+} catch (PDOException $e) {
+    error_log('Portal RDA: falha na conexao com o banco.');
+    header('Content-Type: application/json', true, 503);
+    echo json_encode(['error' => 'Banco de dados do relatorio indisponivel.']);
+    exit;
 }
-?>
