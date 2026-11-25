@@ -1,61 +1,33 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { TicketReport, GLPIUser } from '@/lib/glpi';
-import { getPeriodDates } from '@/lib/period';
+import { TicketReport, RDARecord, glpiService } from '@/lib/glpi';
 
 const ReportPrint = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [data, setData] = useState<{ tickets: TicketReport[], user: GLPIUser, currentUser: GLPIUser, period: string } | null>(null);
-  const [signatureDate] = useState(new Date().toLocaleString('pt-BR'));
-  const [browserInfo, setBrowserInfo] = useState('');
-  const [geoLoc, setGeoLoc] = useState('Localização via rede');
-
+  const [record, setRecord] = useState<RDARecord | null>(null);
+  const [error, setError] = useState('');
+  const code = new URLSearchParams(location.search).get('code') || '';
+  const autoPrint = Boolean(location.state?.autoPrint);
+  const printed = useRef('');
   useEffect(() => {
-    const ua = navigator.userAgent;
-    let browser = "Navegador";
-    if (ua.indexOf("Firefox") > -1) browser = "Firefox";
-    else if (ua.indexOf("SamsungBrowser") > -1) browser = "Samsung";
-    else if (ua.indexOf("Opera") > -1 || ua.indexOf("OPR") > -1) browser = "Opera";
-    else if (ua.indexOf("Edge") > -1 || ua.indexOf("Edg") > -1) browser = "Edge";
-    else if (ua.indexOf("Chrome") > -1) browser = "Chrome";
-    else if (ua.indexOf("Safari") > -1) browser = "Safari";
-    setBrowserInfo(browser);
-
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          const { latitude, longitude } = pos.coords;
-          try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10&addressdetails=1`);
-            const geoData = await response.json();
-            const city = geoData.address.city || geoData.address.town || geoData.address.village || "Local";
-            const state = geoData.address.state || "";
-            setGeoLoc(state ? `${city} - ${state}` : city);
-          } catch (e) {
-            setGeoLoc(`${latitude.toFixed(2)}, ${longitude.toFixed(2)}`);
-          }
-        },
-        () => setGeoLoc('Acesso via rede corporativa'),
-        { timeout: 8000 }
-      );
-    }
-
-    const state = location.state as any;
-    if (state && state.user && state.period) {
-      setData(state);
-      const timer = setTimeout(() => {
-        try { window.print(); } catch (e) {}
-      }, 3000); 
-      return () => clearTimeout(timer);
-    } else {
-      navigate('/dashboard');
-    }
-  }, [location, navigate]);
-
-  const fullPeriodDates = useMemo(() => getPeriodDates(data?.period ?? ''), [data?.period]);
+    let active = true;
+    setRecord(null);
+    setError('');
+    if (!code) { navigate('/dashboard', { replace: true }); return; }
+    glpiService.getRDA(code).then(value => { if (active) setRecord(value); })
+      .catch(err => { if (active) setError(err instanceof Error ? err.message : 'Falha ao consultar emissão.'); });
+    return () => { active = false; };
+  }, [code, navigate]);
+  const data = record?.snapshot;
+  useEffect(() => {
+    if (!data || data.code !== code || !autoPrint || printed.current === code) return;
+    const timer = window.setTimeout(() => { printed.current = code; window.print(); }, 800);
+    return () => clearTimeout(timer);
+  }, [data, code, autoPrint]);
+  const fullPeriodDates = data?.dates || [];
 
   const ticketsByDate = useMemo(() => {
     if (!data?.tickets) return {};
@@ -69,34 +41,36 @@ const ReportPrint = () => {
     return map;
   }, [data]);
 
-  if (!data) return <div className="p-20 text-center text-slate-400">Preparando documento para impressão...</div>;
+  if (error) return <div className="p-8 text-center"><p>{error}</p><button className="underline mt-4" onClick={() => navigate('/dashboard')}>Voltar ao Dashboard</button></div>;
+  if (!data || !record) return <div className="p-20 text-center text-slate-400">Consultando emissão registrada...</div>;
 
-  const isEmittedByOther = data.currentUser && data.currentUser.id !== data.user.id;
-  const approverName = isEmittedByOther ? data.currentUser.name : (data.user.lider || data.user.preposto || "Gestor Responsável");
-  const approverRole = isEmittedByOther ? data.currentUser.profile : (data.user.lider ? "Líder" : (data.user.preposto ? "Preposto" : "Gestor"));
-
-  const ElectronicValidationBox = ({ user }: { user: GLPIUser }) => (
-    <div className="mt-4 p-2.5 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50/30 text-[7px] text-slate-600 leading-tight text-left max-w-[240px] mx-auto shadow-sm">
-      <div className="font-bold text-blue-700 block mb-1.5 text-center text-[8px] uppercase tracking-widest border-b border-blue-200 pb-1">
-        VALIDAÇÃO ELETRÔNICA G4F
+  const issuedDate = new Date(data.issued_at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  const approverName = data.user.preposto || "Preposto não cadastrado";
+  const ua = data.browser;
+  const browserInfo = /Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : ua || 'Não identificado';
+  const verifyUrl = window.location.origin + import.meta.env.BASE_URL + 'validar';
+  const ElectronicValidationBox = () => (
+    <div className="rda-validation mt-6 p-3 border-2 border-dashed border-blue-500 rounded-lg bg-blue-50/30 text-[8pt] text-slate-800 leading-snug text-left">
+      <div className="font-bold text-blue-800 mb-2 text-center text-[9pt] uppercase tracking-wide border-b border-blue-300 pb-1">REGISTRO DE EMISSÃO / VALIDAÇÃO ELETRÔNICA G4F</div>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+        <div><b>EMITIDO POR:</b> {data.currentUser.name} ({data.currentUser.username})</div>
+        <div><b>PERFIL DO EMISSOR:</b> {data.currentUser.profile}</div>
+        <div><b>DATA/HORA (Brasília):</b> {issuedDate}</div>
+        <div><b>MÉTODO:</b> Sessão autenticada via senha individual</div>
+        <div><b>IP DE ORIGEM:</b> {data.ip || 'Não identificado'}</div>
+        <div><b>NAVEGADOR:</b> {browserInfo}</div>
+        <div className="col-span-2"><b>LOCALIZAÇÃO INFORMADA PELO NAVEGADOR:</b> {data.location}</div>
+        <div className="col-span-2 border-t border-blue-200 pt-1"><b>CÓDIGO DE AUTENTICIDADE:</b> <span className="font-mono font-bold break-all">{data.code}</span></div>
+        <div className="col-span-2"><b>SHA-256 DO REGISTRO:</b> <span className="font-mono break-all">{record.sha256}</span></div>
+        <div className="col-span-2"><b>CONSULTA:</b> <a className="text-blue-800 underline break-all" href={verifyUrl}>{verifyUrl}</a></div>
       </div>
-      <div className="space-y-0.5">
-        <div><span className="font-bold text-slate-800">DATA/HORA:</span> {signatureDate}</div>
-        <div><span className="font-bold text-slate-800">MÉTODO:</span> Validado via Senha Individual</div>
-        <div><span className="font-bold text-slate-800">IP DE ORIGEM:</span> {user.ip || '0.0.0.0'}</div>
-        <div><span className="font-bold text-slate-800">NAVEGADOR:</span> {browserInfo}</div>
-        <div className="truncate"><span className="font-bold text-slate-800">LOCALIZAÇÃO:</span> {geoLoc}</div>
-        <div className="mt-1 pt-1 border-t border-blue-100 text-[6px] text-blue-500 font-bold text-center italic">
-          Autenticidade garantida pelo sistema Portal RDA
-        </div>
-      </div>
+      <p className="mt-2 text-slate-600 text-[7.5pt]">Registro de emissão; não comprova aprovação ou assinatura do colaborador ou preposto.</p>
     </div>
   );
 
   return (
     <div className="bg-white min-h-screen p-8 print:p-0 font-sans text-slate-900">
       <style dangerouslySetInnerHTML={{ __html: `
-        @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&display=swap');
         @media print {
           @page { size: A4; margin: 1.2cm; }
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -105,18 +79,18 @@ const ReportPrint = () => {
           .rda-table th { break-inside: avoid; }
           .rda-activity-title { break-after: avoid; page-break-after: avoid; }
           .no-print { display: none; }
+          .rda-signatures, .rda-validation { break-inside: avoid; page-break-inside: avoid; }
         }
         .rda-table th, .rda-table td { border: 1px solid #64748b; }
         .rda-table th { background-color: #e2e8f0; }
         .rda-activity-description { white-space: pre-wrap; overflow-wrap: anywhere; }
-        .signature-font { font-family: 'Dancing Script', cursive; }
       `}} />
       
       <div className="max-w-[210mm] mx-auto print:max-w-none">
         <div className="flex justify-between items-center border-b-2 border-slate-800 pb-2 mb-4">
           <div className="space-y-0.5">
             <h1 className="text-lg font-bold uppercase tracking-tight">Relatório Diário de Atividade - RDA</h1>
-            <p className="text-[10pt] font-semibold text-slate-800">Contrato: 5900.0134711.26.7 - G4F SOLUCOES CORPORATIVAS LTDA</p>
+            <p className="text-[10pt] font-semibold text-slate-800">Contrato: {data.contract} - G4F SOLUCOES CORPORATIVAS LTDA</p>
           </div>
           <img src="https://raw.githubusercontent.com/clesiosantos/glpihmg4f/main/LOGOAZUL.png" alt="Logo" className="h-8 w-auto" />
         </div>
@@ -176,30 +150,24 @@ const ReportPrint = () => {
           </tbody>
         </table>
 
-        <div className="mt-20 grid grid-cols-2 gap-12 items-start">
+        <div className="rda-signatures mt-12 grid grid-cols-2 gap-12 items-start">
           <div className="text-center">
-            <div className="min-h-[40px] flex items-end justify-center mb-1">
-              <div className="signature-font text-2xl text-blue-900/80">{data.user.name}</div>
-            </div>
+            <div className="min-h-[48px]" />
             <div className="border-t border-slate-800 pt-2">
-              <p className="text-[10px] font-bold uppercase tracking-wider">Assinatura do Colaborador</p>
-              <p className="text-[8px] text-slate-500 mt-0.5">{data.user.name}</p>
-              {!isEmittedByOther && <ElectronicValidationBox user={data.user} />}
+              <p className="text-[10pt] font-bold uppercase">Assinatura do Colaborador</p>
+              <p className="text-[9pt] text-slate-700 mt-1">{data.user.name}</p>
             </div>
           </div>
-
           <div className="text-center">
-            <div className="min-h-[40px] flex items-end justify-center mb-1">
-              {isEmittedByOther && <div className="signature-font text-2xl text-blue-900/80">{data.currentUser.name}</div>}
-            </div>
+            <div className="min-h-[48px]" />
             <div className="border-t border-slate-800 pt-2">
-              <p className="text-[10px] font-bold uppercase tracking-wider">Aprovação / Validação</p>
-              <p className="text-[9px] text-slate-700 mt-0.5 font-bold">{approverName}</p>
-              <p className="text-[8px] text-slate-500 uppercase italic">{approverRole}</p>
-              {isEmittedByOther && <ElectronicValidationBox user={data.currentUser} />}
+              <p className="text-[10pt] font-bold uppercase">Aprovação / Validação</p>
+              <p className="text-[9pt] font-bold text-slate-800 mt-1">{approverName}</p>
+              <p className="text-[8pt] text-slate-600">Preposto responsável</p>
             </div>
           </div>
         </div>
+        <ElectronicValidationBox />
 
         <div className="mt-12 pt-4 border-t border-slate-200 text-[8px] text-slate-400 flex justify-between italic">
           <span>Relatório gerado via Portal RDA - G4F SOLUÇÕES</span>

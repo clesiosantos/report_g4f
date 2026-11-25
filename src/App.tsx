@@ -9,6 +9,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import ReportPrint from "./pages/ReportPrint";
 import NotFound from "./pages/NotFound";
+import VerifyRDA from "./pages/VerifyRDA";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
+            <Route path="/validar" element={<VerifyRDA />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

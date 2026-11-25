@@ -31,8 +31,50 @@ export interface GLPIUser {
   profile_id?: number;
 }
 
+export interface RDAEmission {
+  version: number;
+  code: string;
+  contract: string;
+  issued_at: string;
+  period: string;
+  dates: string[];
+  user: GLPIUser & { preposto_id: number };
+  currentUser: GLPIUser;
+  tickets: TicketReport[];
+  ip: string;
+  browser: string;
+  location: string;
+}
+export interface RDARecord { snapshot: RDAEmission; sha256: string }
+export interface RDAProof {
+  code: string; contract: string; issued_at: string; period: string;
+  ticket_count: number; sha256: string;
+}
+
 const api = `${import.meta.env.BASE_URL}api/`;
+async function rdaResponse<T>(response: Response): Promise<T> {
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Operação indisponível.');
+  return data as T;
+}
+
 export const glpiService = {
+  async issueRDA(userId: number, period: string, location: string): Promise<RDARecord> {
+    return rdaResponse<RDARecord>(await fetch(api + 'issue.php', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, period, location })
+    }));
+  },
+  async getRDA(code: string): Promise<RDARecord> {
+    return rdaResponse<RDARecord>(await fetch(api + 'issue.php?' + new URLSearchParams({ code })));
+  },
+  async verifyRDA(code: string): Promise<RDAProof> {
+    return rdaResponse<RDAProof>(await fetch(api + 'verify.php', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code })
+    }));
+  },
+
   async me(): Promise<GLPIUser | null> {
     const response = await fetch(api + 'session.php');
     if (response.status === 401) return null;

@@ -24,7 +24,8 @@ const Login = () => {
     document.title = "Acesso - Relatório da Solução Tecnologia - G4F";
     
     if (user) {
-      const from = (location.state as any)?.from?.pathname || "/dashboard";
+      const previous = (location.state as any)?.from;
+      const from = previous?.pathname ? previous.pathname + (previous.search || "") : "/dashboard";
       navigate(from, { replace: true });
     }
   }, [user, navigate, location]);
@@ -94,6 +95,7 @@ const Login = () => {
             </Button>
           </CardFooter>
         </form>
+        <div className="text-center pb-5"><button type="button" className="text-sm text-blue-700 underline" onClick={() => navigate("/validar")}>Consultar autenticidade de um RDA</button></div>
       </Card>
     </div>
   );

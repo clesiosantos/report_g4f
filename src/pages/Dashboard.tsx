@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { FileText, Download, LogOut, Filter, CalendarDays, Loader2, Users, AlertCircle, ExternalLink } from "lucide-react";
 import { glpiService, TicketReport, GLPIUser } from '@/lib/glpi';
 import { getPeriodDates } from '@/lib/period';
+import { getIssueLocation } from '@/lib/issueLocation';
 import { showError } from '@/utils/toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -24,6 +25,8 @@ const Dashboard = () => {
   const [loadingPeriods, setLoadingPeriods] = useState(true);
   const [loadedSelection, setLoadedSelection] = useState<string | null>(null);
   const requestId = useRef(0);
+  const issuingRef = useRef(false);
+  const [issuing, setIssuing] = useState(false);
   
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -102,11 +105,20 @@ const Dashboard = () => {
     return "bg-slate-100 text-slate-600 border-slate-200";
   };
 
-  const handleExportPDF = () => {
-    if (!selectedPeriod || !selectedColaborador || !user || loadedSelection !== `${selectedPeriod}:${selectedColaborador.id}`) return;
-    navigate('/print', { 
-      state: { tickets, user: selectedColaborador, currentUser: user, period: selectedPeriod } 
-    });
+  const handleExportPDF = async () => {
+    if (issuingRef.current || !selectedPeriod || !selectedColaborador || !user || loadedSelection !== `${selectedPeriod}:${selectedColaborador.id}`) return;
+    issuingRef.current = true;
+    setIssuing(true);
+    try {
+      const location = await getIssueLocation();
+      const record = await glpiService.issueRDA(selectedColaborador.id, selectedPeriod, location);
+      navigate('/print?code=' + record.snapshot.code, { state: { autoPrint: true } });
+    } catch (err) {
+      showError(err instanceof Error ? err.message : 'Não foi possível registrar a emissão.');
+    } finally {
+      issuingRef.current = false;
+      setIssuing(false);
+    }
   };
 
   if (!user) return null;
@@ -119,6 +131,7 @@ const Dashboard = () => {
           <h1 className="text-xl font-bold text-slate-800">Portal RDA</h1>
         </div>
         <div className="flex items-center gap-4">
+          <Button variant="outline" onClick={() => navigate("/validar")}>Validar RDA</Button>
           <div className="text-right hidden sm:block">
             <p className="text-sm font-bold text-slate-900">{user.name}</p>
             <p className="text-xs text-blue-600 font-medium">{user.profile}</p>
@@ -168,8 +181,8 @@ const Dashboard = () => {
                 <Button className="flex-1 md:w-40 bg-blue-700 hover:bg-blue-800" onClick={() => loadData(selectedPeriod, selectedColaborador?.id || user.id)} disabled={loading}>
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4 mr-2" />} Atualizar
                 </Button>
-                <Button variant="outline" className="flex gap-2" onClick={handleExportPDF} disabled={!selectedPeriod || loading || loadedSelection !== `${selectedPeriod}:${selectedColaborador?.id}`}>
-                  <Download className="w-4 h-4" /> Gerar RDA
+                <Button variant="outline" className="flex gap-2" onClick={handleExportPDF} disabled={issuing || !selectedPeriod || loading || loadedSelection !== `${selectedPeriod}:${selectedColaborador?.id}`}>
+                  {issuing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} {issuing ? "Registrando..." : "Gerar RDA"}
                 </Button>
               </div>
             </div>
