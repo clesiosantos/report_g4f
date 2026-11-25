@@ -34,7 +34,7 @@ O sistema é uma camada de visualização e auditoria para o GLPI 10. Ele extrai
 O projeto depende de funções específicas no banco de dados `glpi_fisco`:
 1. `fc_leader_prepost(users_id, tipo)`: Retorna o nome do gestor vinculado ao usuário.
 2. `fc_manager_users(users_id)`: Retorna a gerência do usuário.
-3. `calendario`: Tabela que define os intervalos de 10 a 09 de cada mês para fechamento do RDA.
+3. `calendario`: Tabela que define os intervalos de 20 a 19 do mês seguinte para fechamento do RDA Tec, identificados pelo mês de início (AAAA - MES).
 
 ## 5. Lógica de Validação Eletrônica (Documento)
 O sistema utiliza o estado do navegador para garantir a integridade da assinatura:

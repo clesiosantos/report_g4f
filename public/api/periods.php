@@ -6,7 +6,7 @@ try {
     $sql = "
         SELECT c.periodo AS PERIODO 
         FROM glpi_tickets t
-        INNER JOIN calendario c ON (DATE(COALESCE(t.solvedate, t.closedate, t.date)) = c.data)
+        INNER JOIN calendario c ON (DATE(t.date) = c.data)
         WHERE t.status IN (2, 3, 4, 5, 6)
         AND t.is_deleted = 0
         AND c.periodo IS NOT NULL
@@ -17,7 +17,7 @@ try {
     $results = $stmt->fetchAll(PDO::FETCH_COLUMN);
     
     if (empty($results)) {
-        $sqlFallback = "SELECT periodo FROM calendario GROUP BY periodo ORDER BY MAX(data) DESC LIMIT 12";
+        $sqlFallback = "SELECT periodo FROM calendario WHERE data <= CURRENT_DATE GROUP BY periodo ORDER BY MAX(data) DESC LIMIT 12";
         $stmtFallback = $pdo->query($sqlFallback);
         $results = $stmtFallback->fetchAll(PDO::FETCH_COLUMN);
     }

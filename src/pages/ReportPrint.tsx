@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { TicketReport, GLPIUser } from '@/lib/glpi';
+import { getPeriodDates } from '@/lib/period';
 
 const ReportPrint = () => {
   const location = useLocation();
@@ -54,37 +55,7 @@ const ReportPrint = () => {
     }
   }, [location, navigate]);
 
-  const fullPeriodDates = useMemo(() => {
-    if (!data?.period) return [];
-    try {
-      const monthsMap: Record<string, number> = {
-        'JANEIRO': 0, 'FEVEREIRO': 1, 'MARÇO': 2, 'MARCO': 2, 'ABRIL': 3, 'MAIO': 4, 'JUNHO': 5,
-        'JULHO': 6, 'AGOSTO': 7, 'SETEMBRO': 8, 'OUTUBRO': 9, 'NOVEMBRO': 10, 'DEZEMBRO': 11
-      };
-      const rawPeriod = data.period.toUpperCase().trim();
-      const parts = rawPeriod.split(/[\s\-/]+/).filter(p => p.length > 0);
-      let monthIndex: number | null = null;
-      let yearValue: number | null = null;
-
-      parts.forEach(part => {
-        if (monthsMap[part] !== undefined) monthIndex = monthsMap[part];
-        else if (!isNaN(parseInt(part)) && part.length === 4) yearValue = parseInt(part);
-      });
-
-      if (monthIndex === null || yearValue === null) return [];
-
-      const endDate = new Date(yearValue, monthIndex, 9);
-      const startDate = new Date(yearValue, monthIndex - 1, 10);
-      const dates = [];
-      let current = new Date(startDate);
-
-      while (current <= endDate) {
-        dates.push(current.toISOString().split('T')[0]);
-        current.setDate(current.getDate() + 1);
-      }
-      return dates;
-    } catch (e) { return []; }
-  }, [data]);
+  const fullPeriodDates = useMemo(() => getPeriodDates(data?.period ?? ''), [data?.period]);
 
   const ticketsByDate = useMemo(() => {
     if (!data?.tickets) return {};

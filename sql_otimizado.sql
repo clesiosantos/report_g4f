@@ -14,12 +14,7 @@ SELECT
     IFNULL(fc_groups_ticket(t.id, 2), fc_manager_users(t.users_id_recipient)) AS "GERENCIA_ORIGEM",
     fc_leader_prepost(t.users_id_recipient, 1) AS "LIDER_POSTO",
     fc_leader_prepost(t.users_id_recipient, 2) AS "PREPOSTO_POSTO",
-    CASE 
-        WHEN DAY(t.date) >= 23 THEN CONCAT(LPAD(MONTH(t.date), 2, '0'), '-', YEAR(t.date))
-        WHEN DAY(t.date) < 23 AND MONTH(t.date) != 1 THEN CONCAT(LPAD(MONTH(t.date)-1, 2, '0'), '-', YEAR(t.date))
-        WHEN DAY(t.date) < 23 AND MONTH(t.date) = 1 THEN CONCAT('12', '-', YEAR(t.date)-1)
-        ELSE "INDETERMINADO"
-    END AS "PERIODO_AVALIADO",
+    DATE_FORMAT(DATE_SUB(t.date, INTERVAL 19 DAY), '%m-%Y') AS "PERIODO_AVALIADO",
     CASE t.status
          WHEN '1' THEN 'Novo'
          WHEN '2' THEN 'Atribuído'

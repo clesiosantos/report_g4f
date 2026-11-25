@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { FileText, Download, LogOut, Filter, CalendarDays, Loader2, Users, AlertCircle, ExternalLink } from "lucide-react";
 import { glpiService, TicketReport, GLPIUser } from '@/lib/glpi';
+import { getPeriodDates } from '@/lib/period';
 import { showError } from '@/utils/toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -78,37 +79,7 @@ const Dashboard = () => {
     }
   };
 
-  const fullPeriodDates = useMemo(() => {
-    if (!selectedPeriod) return [];
-    try {
-      const monthsMap: Record<string, number> = {
-        'JANEIRO': 0, 'FEVEREIRO': 1, 'MARÇO': 2, 'MARCO': 2, 'ABRIL': 3, 'MAIO': 4, 'JUNHO': 5,
-        'JULHO': 6, 'AGOSTO': 7, 'SETEMBRO': 8, 'OUTUBRO': 9, 'NOVEMBRO': 10, 'DEZEMBRO': 11
-      };
-      const rawPeriod = selectedPeriod.toUpperCase().trim();
-      const parts = rawPeriod.split(/[\s\-/]+/).filter(p => p.length > 0);
-      let monthIndex: number | null = null;
-      let yearValue: number | null = null;
-
-      parts.forEach(part => {
-        if (monthsMap[part] !== undefined) monthIndex = monthsMap[part];
-        else if (!isNaN(parseInt(part)) && part.length === 4) yearValue = parseInt(part);
-      });
-
-      if (monthIndex === null || yearValue === null) return [];
-
-      const endDate = new Date(yearValue, monthIndex, 9);
-      const startDate = new Date(yearValue, monthIndex - 1, 10);
-      const dates = [];
-      let current = new Date(startDate);
-
-      while (current <= endDate) {
-        dates.push(current.toISOString().split('T')[0]);
-        current.setDate(current.getDate() + 1);
-      }
-      return dates.reverse();
-    } catch (e) { return []; }
-  }, [selectedPeriod]);
+  const fullPeriodDates = useMemo(() => getPeriodDates(selectedPeriod).reverse(), [selectedPeriod]);
 
   const ticketsByDate = useMemo(() => {
     const map: Record<string, TicketReport[]> = {};
